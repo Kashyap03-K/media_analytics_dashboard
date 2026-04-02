@@ -2,6 +2,15 @@
 app.py — TAM EIKONA Dashboard
 Light gradient theme | Fixed sidebar | Multi-medium Analytics
 """
+'''
+BG code for gradient
+.stApp {
+    background:
+        radial-gradient(circle at 1px 1px, #E0E7FF 1px, transparent 0),
+        linear-gradient(180deg, #FBF8FF 0%, #EEF2FF 50%, #F0F4F8 100%) !important;
+    background-size: 28px 28px, 100% 100% !important;
+    min-height: 100vh;
+}'''
 import os, io
 import pandas as pd
 import streamlit as st
@@ -39,15 +48,15 @@ st.markdown("""
 }
 
 html, body, [class*="css"] { font-family:'Plus Jakarta Sans',sans-serif!important; }
-
 /* ══ LIGHT GRADIENT BACKGROUND ══ */
 .stApp {
-    background: linear-gradient(135deg, #EEF2FF 0%, #F0F9FF 40%, #F0FDF4 100%) !important;
-    min-height: 100vh;
-    color: var(--text);
+    background-image: url("https://static.vecteezy.com/system/resources/thumbnails/004/782/942/small/blue-sky-gradient-watercolor-background-free-vector.jpg");
+    background-size: cover; /* Makes the image stretch to fill the screen */
+    background-position: center; /* Keeps the image centered */
+    background-repeat: no-repeat; /* Prevents tiling */
+    background-attachment: fixed; /* Keeps the background still when scrolling */
 }
-
-#MainMenu, footer, header { display:none!important; }
+#MainMenu, footer, header { display:none!important; }   
 .block-container { padding-top:.6rem!important; padding-bottom:2rem!important; }
 
 /* ══ WHITE SIDEBAR — always visible ══ */
@@ -107,9 +116,10 @@ section[data-testid="stSidebar"] [data-testid="stRadio"] > div {
 section[data-testid="stSidebar"] [data-testid="stRadio"] label {
     display:flex!important; align-items:center!important; gap:9px!important;
     padding:9px 14px!important; border-radius:8px!important; cursor:pointer!important;
-    transition:background .12s!important; font-size:0.875rem!important;
-    font-weight:500!important; color:#111827!important; margin:0!important;
-    border:none!important; background:transparent!important; width:100%!important;
+    transition:all .15s ease!important; font-size:0.875rem!important;
+    font-weight:500!important; color:#374151!important; margin:0!important;
+    border:none!important; border-left:3px solid transparent!important;
+    background:transparent!important; width:100%!important;
     list-style:none!important;
 }
 section[data-testid="stSidebar"] [data-testid="stRadio"] label:hover {
@@ -117,6 +127,7 @@ section[data-testid="stSidebar"] [data-testid="stRadio"] label:hover {
 }
 section[data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked) {
     background:#EEF2FF!important; color:#4338CA!important; font-weight:600!important;
+    border-left:3px solid #4F46E5!important; padding-left:11px!important;
 }
 section[data-testid="stSidebar"] [data-testid="stRadio"] input[type="radio"] {
     display:none!important;
@@ -188,16 +199,24 @@ h3 { color:var(--gold)!important; font-size:.9rem!important; font-weight:600!imp
 div[data-testid="metric-container"] {
     background: #FFFFFF!important;
     border: 1px solid var(--border)!important;
+    border-left: 3px solid var(--accent)!important;
     border-radius: var(--radius)!important;
-    padding: 14px 18px!important;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.05)!important;
+    padding: 16px 20px!important;
+    box-shadow: 0 2px 12px rgba(79,70,229,0.08)!important;
+    transition: box-shadow .2s, transform .2s !important;
 }
-div[data-testid="metric-container"] label { color:var(--muted)!important; font-size:.76rem!important; }
+div[data-testid="metric-container"]:hover {
+    box-shadow: 0 6px 24px rgba(79,70,229,0.14)!important;
+    transform: translateY(-1px)!important;
+}
+div[data-testid="metric-container"] label { color:var(--muted)!important; font-size:.76rem!important; text-transform:uppercase!important; letter-spacing:.04em!important; }
 div[data-testid="metric-container"] div[data-testid="stMetricValue"] {
-    color:var(--accent)!important; font-size:1.65rem!important; font-weight:700!important;
+    color:var(--accent)!important; font-size:1.7rem!important; font-weight:700!important;
 }
 
-.stDataFrame { border:1px solid var(--border)!important; border-radius:var(--radius)!important; }
+.stDataFrame { border:1px solid var(--border)!important; border-radius:var(--radius)!important;
+    box-shadow:0 1px 6px rgba(0,0,0,0.05)!important; overflow:hidden!important; }
+.stDataFrame [data-testid="stDataFrameGlideDataEditor"] { border-radius:var(--radius)!important; }
 
 .stButton>button {
     background:var(--accent)!important; color:#fff!important;
@@ -216,12 +235,19 @@ div[data-testid="metric-container"] div[data-testid="stMetricValue"] {
 
 .stTabs [data-baseweb="tab-list"] {
     background:#FFFFFF!important; border-radius:var(--radius)!important;
-    border:1px solid var(--border)!important; padding:4px!important;
+    border:1px solid var(--border)!important; padding:5px!important;
+    box-shadow:0 1px 6px rgba(0,0,0,0.05)!important;
 }
-.stTabs [data-baseweb="tab"] { color:var(--muted)!important; border-radius:7px!important; }
+.stTabs [data-baseweb="tab"] {
+    color:var(--muted)!important; border-radius:7px!important;
+    font-size:.875rem!important; font-weight:500!important;
+    transition: all .15s!important;
+}
+.stTabs [data-baseweb="tab"]:hover { color:var(--accent)!important; }
 .stTabs [aria-selected="true"] {
     color:var(--accent)!important; background:#EEF2FF!important;
     border-bottom:none!important; font-weight:600!important;
+    box-shadow: 0 1px 4px rgba(79,70,229,0.15)!important;
 }
 .streamlit-expanderHeader { background:#FFFFFF!important; color:var(--text)!important; border-radius:var(--radius)!important; }
 .stSelectbox>div, .stTextInput>div>input {
@@ -232,13 +258,30 @@ div[data-testid="metric-container"] div[data-testid="stMetricValue"] {
 
 /* Banner */
 .banner {
-    background: linear-gradient(90deg, #FBCFE8 0%, #A21CAF 50%, #3B0764 100%);
-    border-radius:12px; padding:16px 24px 12px;
-    margin-bottom:18px; display:flex; align-items:center; gap:14px;
-    box-shadow:0 4px 14px rgba(79,70,229,0.25);
+    background: linear-gradient(90deg, #f8f9fa 0%, #e2e8f0 25%, #1e1b4b 35%, #0f0c29 100%);
+    border-radius:14px; padding:18px 26px 14px;
+    margin-bottom:20px; display:flex; align-items:center; 
+    justify-content: space-between; gap:16px;
+    box-shadow:0 6px 24px rgba(79,70,229,0.28);
+    position:relative; overflow:hidden;
 }
-.banner-title { font-size:1.2rem; font-weight:700; color:#fff; letter-spacing:-.01em; }
-.banner-sub   { font-size:.78rem; color:rgba(255,255,255,0.75); margin-top:3px; }
+.banner-text-content {
+    text-align: right;
+}
+.banner::before {
+    content:''; position:absolute; top:-40px; right:-40px;
+    width:200px; height:200px; border-radius:50%;
+    background:rgba(255,255,255,0.05);
+    pointer-events:none;
+}
+.banner::after {
+    content:''; position:absolute; bottom:-60px; right:120px;
+    width:150px; height:150px; border-radius:50%;
+    background:rgba(255,255,255,0.04);
+    pointer-events:none;
+}
+.banner-title { font-size:1.25rem; font-weight:700; color:#fff; letter-spacing:-.01em; }
+.banner-sub   { font-size:.78rem; color:rgba(255,255,255,0.78); margin-top:3px; }
 
 /* Badges */
 .badge { display:inline-block; padding:2px 9px; border-radius:20px; font-size:.72rem; font-weight:600; }
@@ -249,9 +292,9 @@ div[data-testid="metric-container"] div[data-testid="stMetricValue"] {
 .badge-review  { background:#FEF3C7; color:#92400E; }
 
 .sidebar-section-label {
-    font-size:0.68rem; font-weight:700; letter-spacing:.08em;
-    text-transform:uppercase; color:#9CA3AF;
-    padding:10px 14px 3px; display:block;
+    font-size:0.72rem; font-weight:700; letter-spacing:.10em;
+    text-transform:uppercase; color:#94A3B8;
+    padding:14px 16px 6px; display:block;
 }
 </style>
 <script>
@@ -347,8 +390,9 @@ def show_login():
     _, mid, _ = st.columns([1, 1.6, 1])
     with mid:
         st.markdown(f"""
-        <div style="text-align:center;padding:36px 32px 24px;
-                    border-radius:16px;margin-bottom:18px">
+        <div style="text-align:center;padding:36px 32px 28px;
+                    ;border-radius:16px;margin-bottom:18px;
+                    ;">
             <div style="margin-bottom:14px">
                 <img src="data:image/png;base64,{logo_base64}" width="220">
             </div>
@@ -449,7 +493,7 @@ def render_analytics(username):
 
     # Medium selector checkboxes
     st.markdown("#### Select Mediums to Compare")
-    available = {"Print":"print","Online":"online","TV":"tv","Social Media":"social"}
+    available = {"Print 📰":"print","Online 🌐":"online","TV 📺":"tv","Social Media 📱":"social"}
     cols = st.columns(len(available))
     selected = []
     for i,(label,key) in enumerate(available.items()):
@@ -472,7 +516,7 @@ def render_analytics(username):
     st.markdown("---")
 
     # Load dataframes for selected mediums
-    PCOLORS = {"Print":"#2563EB","Online":"#059669","TV":"#7C3AED","Social Media":"#DB2777"}
+    PCOLORS = {"Print 📰":"#2563EB","Online 🌐":"#059669","TV 📺":"#7C3AED","Social Media 📱":"#DB2777"}
     BG = "rgba(0,0,0,0)"
     FONT = "Plus Jakarta Sans, sans-serif"
     GC = "rgba(203,213,225,0.4)"; TC = "#64748B"
@@ -666,6 +710,7 @@ def render_banner(name, username):
     st.markdown(f"""
     <div class="banner">
         <div><img src="data:image/png;base64,{logo_small_base64}" width="110"></div>
+        <div style="text-align: right;">
         <div>
             <div class="banner-title">TAM — EIKONA Dashboard</div>
             <div class="banner-sub">
@@ -674,6 +719,7 @@ def render_banner(name, username):
                 &nbsp;·&nbsp; {_badge(role)}
                 &nbsp;·&nbsp; <span style="font-size:.7rem;opacity:.7">🔒 Secure Session</span>
             </div>
+        </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -685,22 +731,45 @@ def render_sidebar(username):
     access = ROLE_ACCESS.get(role,[])
     name  = st.session_state.get("name", username)
 
-    nav_items = {
-        "analytics": ("📈","Analytics"),
-        "print":     ("🗞️","Print"),
-        "online":    ("🌐","Online"),
-        "tv":        ("📺","TV"),
-        "social":    ("📱","Social Media"),
-        "admin":     ("⚙️","Admin"),
+    # SVG icons — Lucide style, rendered inline via HTML labels
+    NAV_ICONS = {
+        "analytics": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+        "print":     '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>',
+        "online":    '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
+        "tv":        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>',
+        "social":    '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+        "admin":     '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/><path d="M12 1v3m0 16v3M4.22 4.22l2.12 2.12m11.32 11.32 2.12 2.12M1 12h3m16 0h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>',
     }
+    NAV_LABELS = {
+        "analytics": "Analytics",
+        "print":     "Print",
+        "online":    "Online",
+        "tv":        "TV",
+        "social":    "Social Media",
+        "admin":     "Admin",
+    }
+    nav_items = {k: (NAV_ICONS[k], NAV_LABELS[k]) for k in NAV_ICONS}
 
     with st.sidebar:
         # Brand
         st.markdown("""
-        <div style="padding:20px 16px 12px;border-bottom:1px solid #F3F4F6;margin-bottom:6px;">
-            <div style="font-size:1rem;font-weight:700;color:#111827;letter-spacing:-.01em;">EIKONA</div>
-            <div style="font-size:0.67rem;color:#9CA3AF;margin-top:1px;font-weight:600;
-                        text-transform:uppercase;letter-spacing:.06em;">Media Intelligence</div>
+        <div style="padding:20px 16px 14px;border-bottom:1px solid #F1F5F9;margin-bottom:4px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                <div style="width:28px;height:28px;border-radius:7px;
+                            background:linear-gradient(135deg,#4F46E5,#6366F1);
+                            display:flex;align-items:center;justify-content:center;">
+                    <svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24'
+                         fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round'
+                         stroke-linejoin='round'>
+                        <polyline points='22 12 18 12 15 21 9 3 6 12 2 12'/>
+                    </svg>
+                </div>
+                <div style="font-size:1.05rem;font-weight:700;color:#111827;
+                            letter-spacing:-.01em;">EIKONA</div>
+            </div>
+            <div style="font-size:0.65rem;color:#94A3B8;font-weight:600;
+                        text-transform:uppercase;letter-spacing:.08em;
+                        padding-left:36px;">Media Intelligence</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -720,18 +789,49 @@ def render_sidebar(username):
         </div>
         """, unsafe_allow_html=True)
 
-        st.markdown('<span class="sidebar-section-label">Navigation</span>', unsafe_allow_html=True)
+        #st.markdown('<span class="sidebar-section-label"></span>', unsafe_allow_html=True)
 
-        choices=[(k,f"{icon}  {label}") for k,(icon,label) in nav_items.items() if k in access]
+        choices=[(k, label) for k,(icon,label) in nav_items.items() if k in access]
         labels=[c[1] for c in choices]; keys=[c[0] for c in choices]
-        sel=st.radio("", labels, label_visibility="collapsed")
+        sel=st.radio("",labels, label_visibility="hidden")
         selected_key=keys[labels.index(sel)]
+        # Inject SVG icons via JS after render (targets each nav label by text content)
+        icon_js = "\n".join([
+            f"injectIcon('{nav_items[k][1]}', `{nav_items[k][0]}`);"
+            for k,(icon,label) in nav_items.items() if k in access
+        ])
+        st.markdown(f"""
+        <script>
+        (function(){{
+          function injectIcon(labelText, svgHtml) {{
+            var labels = window.parent.document.querySelectorAll(
+              'section[data-testid="stSidebar"] [data-testid="stRadio"] [data-testid="stMarkdownContainer"] p'
+            );
+            labels.forEach(function(el) {{
+              if(el.textContent.trim() === labelText && !el.dataset.iconInjected) {{
+                el.dataset.iconInjected = "1";
+                el.innerHTML = '<span style="display:inline-flex;align-items:center;gap:9px">'
+                  + svgHtml + '<span>' + labelText + '</span></span>';
+              }}
+            }});
+          }}
+          function runInject() {{
+            {icon_js}
+          }}
+          runInject();
+          setTimeout(runInject, 300);
+          setTimeout(runInject, 800);
+          var obs = new MutationObserver(runInject);
+          obs.observe(window.parent.document.body, {{childList:true, subtree:true}});
+        }})();
+        </script>
+        """, unsafe_allow_html=True)
 
         st.markdown("<hr>", unsafe_allow_html=True)
         try:
-            authenticator.logout("↪  Logout", location="sidebar")
+            authenticator.logout("Sign out", location="sidebar")
         except Exception:
-            if st.button("↪  Logout"):
+            if st.button("Sign out"):
                 for k in ["name","authentication_status","username"]:
                     st.session_state.pop(k,None)
                 st.rerun()
