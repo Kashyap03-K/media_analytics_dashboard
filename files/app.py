@@ -2,15 +2,7 @@
 app.py — TAM EIKONA Dashboard
 Light gradient theme | Fixed sidebar | Multi-medium Analytics
 """
-'''
-BG code for gradient
-.stApp {
-    background:
-        radial-gradient(circle at 1px 1px, #E0E7FF 1px, transparent 0),
-        linear-gradient(180deg, #FBF8FF 0%, #EEF2FF 50%, #F0F4F8 100%) !important;
-    background-size: 28px 28px, 100% 100% !important;
-    min-height: 100vh;
-}'''
+
 import os, io
 import pandas as pd
 import streamlit as st
