@@ -1,0 +1,51 @@
+show_id,title,channel_id,genre,language,runtime_mins,platform,weekly_slots,avg_rating,total_episodes,first_aired,last_aired,status,compliance_flag,prime_time
+SH001,Aaj Ki Khabar,CH001,News,Hindi,30,DTH+Cable,14,7.8,520,2019-04-01,2024-12-31,Active,Clear,Yes
+SH002,Raat Ki Baat,CH001,News,Hindi,60,DTH,7,6.9,210,2020-06-01,2024-12-31,Active,Clear,Yes
+SH003,Subah Samachar,CH002,News,Hindi,45,Cable,7,7.2,310,2020-02-01,2024-12-31,Active,Clear,No
+SH004,Saptahik Vishesh,CH002,News Magazine,Hindi,90,DTH+Cable,4,8.1,180,2021-01-10,2024-12-31,Active,Clear,Yes
+SH005,Maharashtra Bulletin,CH003,Regional News,Marathi,30,DTH+Cable,14,7.5,490,2018-09-01,2024-12-31,Active,Clear,No
+SH006,Shetkarichi Baat,CH003,Agriculture,Marathi,45,Cable,7,6.4,120,2020-04-15,2024-12-31,Active,Clear,No
+SH007,Chennai Flash,CH004,News,Tamil,30,DTH,14,7.9,480,2021-05-01,2024-12-31,Active,Clear,Yes
+SH008,Vanitha Special,CH004,Lifestyle,Tamil,60,DTH+Cable,4,8.3,95,2022-01-20,2024-12-31,Active,Clear,Yes
+SH009,Kannada Habba,CH005,Culture,Kannada,60,Cable,4,7.1,75,2020-01-01,2024-12-31,Active,Review,No
+SH010,Weekend Warriors,CH005,Game Show,Kannada,90,DTH,4,8.6,110,2021-07-04,2024-12-31,Active,Clear,Yes
+SH011,Tollywood Tonight,CH006,Entertainment,Telugu,60,DTH+Cable,7,8.0,290,2020-08-10,2024-12-31,Active,Clear,Yes
+SH012,Kisan Vaarta,CH006,Agriculture,Telugu,45,Cable,7,6.2,215,2021-03-01,2024-12-31,Active,Clear,No
+SH013,Dhoom Dhadaka,CH007,Music,Bengali,120,DTH,7,7.7,320,2021-10-01,2024-12-31,Active,Clear,Yes
+SH014,Rabindra Sangeet,CH007,Classical Music,Bengali,60,Cable,4,9.1,48,2022-05-09,2024-12-31,Active,Clear,No
+SH015,Bhangra Bonanza,CH008,Music,Punjabi,60,DTH+Cable,7,8.2,275,2019-03-15,2024-12-31,Active,Clear,Yes
+SH016,Giddha Girls,CH008,Dance,Punjabi,45,DTH,4,7.6,90,2022-08-01,2024-12-31,Active,Clear,No
+SH017,Chotta Hero,CH009,Animation,Hindi,30,DTH+Cable,28,9.4,620,2022-02-14,2024-12-31,Active,Clear,No
+SH018,Space Explorers,CH009,Educational,Hindi,30,Cable,14,9.2,310,2022-06-01,2024-12-31,Active,Clear,No
+SH019,IPL Countdown,CH010,Sports,Hindi,60,DTH+Cable,7,9.5,85,2023-03-01,2024-05-30,Archived,Clear,Yes
+SH020,Wrestling Live,CH010,Sports,Hindi,120,DTH,4,8.9,210,2017-06-01,2024-12-31,Active,Clear,Yes
+SH021,Classic Rewind,CH011,Movies,Hindi,180,DTH+Cable,14,8.4,720,2016-10-01,2024-12-31,Active,Clear,Yes
+SH022,Blockbuster Friday,CH011,Movies,Hindi,180,DTH+Cable,4,9.0,410,2017-01-06,2024-12-31,Active,Clear,Yes
+SH023,Hanuman Chalisa,CH012,Devotional,Hindi,30,Cable,28,8.8,1040,2020-04-01,2024-12-31,Active,Clear,No
+SH024,Sai Darshan,CH012,Devotional,Hindi,60,DTH+Cable,7,8.5,380,2021-01-01,2024-12-31,Active,Clear,No
+SH025,Bhubaneswar Today,CH013,News,Odia,30,Cable,14,7.0,420,2019-08-15,2024-12-31,Active,Clear,No
+SH026,Odisha Utsav,CH013,Culture,Odia,60,DTH,4,7.3,95,2020-11-01,2024-12-31,Active,Review,No
+SH027,Kerala Kitchen,CH014,Lifestyle,Malayalam,45,DTH+Cable,7,8.7,310,2021-11-15,2024-12-31,Active,Clear,No
+SH028,Cinema Talkies,CH014,Entertainment,Malayalam,60,Cable,7,8.2,245,2022-03-01,2024-12-31,Active,Clear,Yes
+SH029,Garba Nights,CH015,Culture,Gujarati,90,DTH+Cable,4,9.0,52,2019-10-01,2024-12-31,Active,Clear,Yes
+SH030,Vyapar Duniya,CH015,Business,Gujarati,45,Cable,7,7.6,280,2020-01-15,2024-12-31,Active,Clear,No
+SH031,Planet Earth IN,CH016,Documentary,English,60,DTH+Cable,7,9.3,140,2022-06-05,2024-12-31,Active,Clear,Yes
+SH032,Crime Unsolved,CH016,Documentary,English,60,DTH,4,8.6,78,2023-01-15,2024-12-31,Active,Clear,Yes
+SH033,Yoga Morning,CH017,Fitness,Hindi,60,Cable,14,8.0,510,2023-02-01,2024-12-31,Active,Clear,No
+SH034,Diet Diaries,CH017,Lifestyle,Hindi,30,DTH+Cable,7,7.4,180,2023-04-10,2024-12-31,Active,Clear,No
+SH035,Laughter Nights,CH018,Comedy,Hindi,60,DTH+Cable,7,8.9,320,2020-10-01,2024-12-31,Active,Clear,Yes
+SH036,Stand Up Stars,CH018,Comedy,Hindi,90,DTH,4,9.1,95,2021-12-01,2024-12-31,Active,Clear,Yes
+SH037,ISRO Chronicles,CH019,Science,English,60,DTH+Cable,4,9.4,48,2022-09-15,2024-12-31,Active,Clear,No
+SH038,Tech Tomorrow,CH019,Technology,English,45,Cable,7,8.8,165,2022-07-01,2024-12-31,Active,Clear,No
+SH039,Guwahati Speaks,CH020,News,Assamese,30,Cable,14,6.8,390,2022-12-01,2024-12-31,Active,Clear,No
+SH040,Bihu Festival,CH020,Culture,Assamese,90,DTH,4,8.4,28,2023-04-01,2024-04-30,Archived,Clear,No
+SH041,Prime Time Debate,CH001,News,Hindi,60,DTH+Cable,7,8.5,415,2019-05-01,2024-12-31,Active,Clear,Yes
+SH042,Bollywood Buzz,CH011,Entertainment,Hindi,60,DTH+Cable,7,8.1,380,2017-03-01,2024-12-31,Active,Clear,Yes
+SH043,MMA Fight Night,CH010,Sports,Hindi,180,DTH,4,8.7,120,2020-02-15,2024-12-31,Active,Clear,Yes
+SH044,Balika Prem,CH005,Drama,Kannada,45,Cable+DTH,28,7.9,850,2019-06-01,2024-12-31,Active,Review,Yes
+SH045,Smart Kids Show,CH009,Educational,Hindi,30,DTH+Cable,14,9.0,420,2023-01-01,2024-12-31,Active,Clear,No
+SH046,Saregama Classix,CH008,Classical Music,Punjabi,60,DTH,4,8.5,75,2022-10-01,2024-12-31,Active,Clear,No
+SH047,Tamil Thalaiva,CH004,Drama,Tamil,45,Cable,28,8.8,960,2021-06-14,2024-12-31,Active,Clear,Yes
+SH048,Science Lab Kids,CH019,Educational,English,30,DTH+Cable,14,9.2,240,2023-03-15,2024-12-31,Active,Clear,No
+SH049,Health Line,CH017,Health,Hindi,45,Cable,7,7.8,195,2023-05-01,2024-12-31,Active,Clear,No
+SH050,Bharat Ki Baat,CH002,News Analysis,Hindi,60,DTH+Cable,7,8.3,370,2020-03-01,2024-12-31,Active,Clear,Yes

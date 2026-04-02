@@ -1,0 +1,34 @@
+credentials:
+  usernames:
+    admin:
+      name: Admin User
+      password: "$2b$12$Rw4bw8LH5L9YznvNuZAIm.TvG4Ub8SetXJ3HZphOpvwEw9aykknhS"
+      role: admin
+    client1:
+      name: Client Viewer
+      password: "$2b$12$RSB55nRF7U6tpwfjFhorjeHmSt0K4DxchzocLHGnuA0AT2NbbLiyG"
+      role: client
+    partner1:
+      name: Partner Access
+      password: "$2b$12$FbOsFkX.wblR8inimcVaMeHcwBxevGgGYV3IxJRmPKPSsYQBoBZMC"
+      role: partner
+    apexa.khopkar@tamindia.com:
+      name: Apexa Khopkar
+      password: "$2b$12$2V62uSTM7Mi0CFPiFTBQ1eME3R4JOrRWhlY21CG8bW85KaDK3kZPS" 
+      role: partner
+    anitta.joy@tamindia.com:
+      name: Anitta Joy
+      password: "$2b$12$65heiqIpa5CocW6wIfr0cutAeG0/uZKorZDdevd2mGgC38oATZNIm" 
+      role: partner
+    ankit.mishra@tamindia.com:
+      name: Ankit Mishra
+      password: "$2b$12$I1aokqPIf0AG5WRCmmGnpuvhIkqcCjsmocLvbaRssP2UfOGRJd0bm" 
+      role: partner
+    rohit.patil@tamindia.com:
+      name: Rohit Patil
+      password: "$2b$12$I1aokqPIf0AG5WRCmmGnpuvhIkqcCjsmocLvbaRssP2UfOGRJd0bm" 
+      role: partner                
+cookie:
+  name: eikona_auth_cookie
+  key: eikona_super_secret_key_change_me_2024
+  expiry_days: 1
