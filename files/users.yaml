@@ -27,7 +27,12 @@ credentials:
     rohit.patil@tamindia.com:
       name: Rohit Patil
       password: "$2b$12$i4Xnuw0kjXvcyQsXo7v0SuJ7vMumQ4aA8jYc0..8w/c8R8bNK3ZUq" 
-      role: partner                
+      role: partner
+    leena.n@tamindia.com:
+      name: Leena Nimbawat
+      password: "$2b$12$cZ4SR2nhLAmiAXN3Wslvh.7ipWRGrH4Wq4c8xWe5fSgiBoQFpoveC" 
+      role: partner
+
 cookie:
   name: eikona_auth_cookie
   key: eikona_super_secret_key_change_me_2024
