@@ -13,10 +13,11 @@ import base64
 import tempfile
 from datetime import datetime
 from config import DB_PATH
+from products import PRODUCTS, get_product, get_platform as _get_plat_cfg
 
 PLATFORMS = {
     "print": {
-        "label":"Print","icon":"🗞️","table":"media_print",
+        "label":"Print","icon": "🗞️","table":"media_print",
         "unit_opts":["Article Count","Readership (000s)","coScore Index","Coverage Volume"],
         "unit_keys":["articles","readership","index","coverage"],
         "col_map":{
@@ -91,6 +92,13 @@ PLATFORMS = {
     },
 }
 
+
+def _cfg(product_key: str, platform_key: str) -> dict:
+    """Get platform config for given product. Falls back to HGEC PLATFORMS for backward compat."""
+    if product_key and product_key in PRODUCTS:
+        return PRODUCTS[product_key]["platforms"].get(platform_key, PLATFORMS.get(platform_key, {}))
+    return PLATFORMS.get(platform_key, {})
+
 BASE_DDL = """
 CREATE TABLE IF NOT EXISTS {table} (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -105,31 +113,32 @@ CREATE TABLE IF NOT EXISTS {table} (
 );
 """
 
-def init_platform_db():
-    """Create platform tables. If an existing table is missing required columns, drop and recreate it."""
+def init_platform_db(product_key: str = None):
+    """Create platform tables for the given product (or all products if None)."""
+    products_to_init = [product_key] if product_key else list(PRODUCTS.keys())
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     required_cols = {"publication_date", "company", "total_articles",
                      "beneficial_art", "neutral_art", "adverse_art",
                      "beneficial_vol", "neutral_vol", "adverse_vol", "total_vol"}
-    for key, cfg in PLATFORMS.items():
-        table = cfg["table"]
-        # Check if table exists and has all required columns
-        existing = conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table,)
-        ).fetchone()
-        if existing:
-            present = {row[1] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
-            if not required_cols.issubset(present):
-                # Stale schema — drop and let it be recreated fresh
-                conn.execute(f"DROP TABLE IF EXISTS {table}")
-                conn.commit()
-        ddl = BASE_DDL.format(table=table, extra=cfg["ddl_extra"])
-        conn.executescript(ddl)
+    for prod_key in products_to_init:
+        prod = PRODUCTS.get(prod_key, {})
+        for plat_key, cfg in prod.get("platforms", {}).items():
+            table = cfg["table"]
+            existing = conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table,)
+            ).fetchone()
+            if existing:
+                present = {row[1] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+                if not required_cols.issubset(present):
+                    conn.execute(f"DROP TABLE IF EXISTS {table}")
+                    conn.commit()
+            ddl = BASE_DDL.format(table=table, extra=cfg["ddl_extra"])
+            conn.executescript(ddl)
     conn.commit()
     conn.close()
 
-def load_platform_xlsx(xlsx_path, platform_key):
-    cfg = PLATFORMS[platform_key]
+def load_platform_xlsx(xlsx_path, platform_key, product_key="hgec"):
+    cfg = _cfg(product_key, platform_key)
     if not os.path.exists(xlsx_path): return 0
     df = pd.read_excel(xlsx_path)
     df.columns = [c.strip() for c in df.columns]
@@ -148,6 +157,7 @@ def load_platform_xlsx(xlsx_path, platform_key):
         shares   = pd.to_numeric(df.get("neutral_art",0),      errors="coerce").fillna(0)
         df["coscore_index"] = likes + comments + shares
     df["_platform"] = cfg["label"]
+    df["_product"]   = product_key
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     cursor = conn.execute(f"PRAGMA table_info({cfg['table']})")
     db_cols = {row[1] for row in cursor.fetchall()}
@@ -157,8 +167,8 @@ def load_platform_xlsx(xlsx_path, platform_key):
     n = conn.execute(f"SELECT COUNT(*) FROM {cfg['table']}").fetchone()[0]
     conn.close(); return n
 
-def table_has_data(platform_key):
-    cfg = PLATFORMS[platform_key]
+def table_has_data(platform_key, product_key="hgec"):
+    cfg = _cfg(product_key, platform_key)
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     try:
         exists = conn.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?",
@@ -167,16 +177,16 @@ def table_has_data(platform_key):
         return conn.execute(f"SELECT COUNT(*) FROM {cfg['table']}").fetchone()[0] > 0
     finally: conn.close()
 
-def get_platform_df(platform_key):
-    cfg = PLATFORMS[platform_key]
+def get_platform_df(platform_key, product_key="hgec"):
+    cfg = _cfg(product_key, platform_key)
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     try: return pd.read_sql_query(f"SELECT * FROM {cfg['table']}", conn)
     finally: conn.close()
 
-def get_date_range(platform_key):
+def get_date_range(platform_key, product_key="hgec"):
     """Return (min_date, max_date) strings, or (None, None) if unavailable."""
-    if not table_has_data(platform_key): return None, None
-    cfg = PLATFORMS[platform_key]
+    if not table_has_data(platform_key, product_key): return None, None
+    cfg = _cfg(product_key, platform_key)
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     try:
         # Safety check: only query if column actually exists in this table
@@ -196,8 +206,8 @@ def _safe(df, col):
     if col in df.columns: return pd.to_numeric(df[col], errors="coerce").fillna(0)
     return pd.Series([0]*len(df), index=df.index)
 
-def build_chart_data(df, platform_key, unit_key):
-    cfg = PLATFORMS[platform_key]
+def build_chart_data(df, platform_key, unit_key, product_key="hgec"):
+    cfg = _cfg(product_key, platform_key)
     if df.empty: return _empty()
     df = df.copy()
 
@@ -279,8 +289,8 @@ def _empty():
             "date_range":{"min":"","max":"","all":[]},"unit_opts":[("articles","Count")],
             "tv_extra":{},"platform_key":""}
 
-def _build_html(chart_data, platform_key):
-    cfg = PLATFORMS[platform_key]
+def _build_html(chart_data, platform_key, product_key="hgec"):
+    cfg = _cfg(product_key, platform_key)
     data_json = json.dumps(chart_data)
     plat_color = {"print":"#2563EB","online":"#059669","tv":"#7C3AED","social":"#DB2777"}.get(platform_key,"#4F46E5")
     plat_light = {"print":"#DBEAFE","online":"#D1FAE5","tv":"#EDE9FE","social":"#FCE7F3"}.get(platform_key,"#EEF2FF")
@@ -570,8 +580,8 @@ function doExport(){{window.parent.postMessage({{type:"cbc_export",platform:"{pl
 initUI();applyFilters();
 </script></body></html>"""
 
-def render_platform_dashboard(username, role, platform_key="print"):
-    cfg = PLATFORMS[platform_key]
+def render_platform_dashboard(username, role, platform_key="print", product_key="hgec"):
+    cfg = _cfg(product_key, platform_key)
     is_admin = (role=="admin")
     st.markdown(f"## {cfg['icon']} {cfg['label']} — Media Intelligence")
 
@@ -580,29 +590,29 @@ def render_platform_dashboard(username, role, platform_key="print"):
             st.caption(f"Upload your {cfg['label']} Raw Data (.xlsx)")
             c1,c2 = st.columns([3,1])
             with c1:
-                uploaded = st.file_uploader("Upload xlsx",type=["xlsx"],key=f"upload_{platform_key}",label_visibility="collapsed")
+                uploaded = st.file_uploader("Upload xlsx",type=["xlsx"],key=f"upload_{platform_key}_{product_key}",label_visibility="collapsed")
             with c2:
                 st.markdown("<div style='height:28px'></div>",unsafe_allow_html=True)
-                if uploaded and st.button("Load Data",key=f"load_{platform_key}"):
+                if uploaded and st.button("Load Data",key=f"load_{platform_key}_{product_key}"):
                     with tempfile.NamedTemporaryFile(delete=False,suffix=".xlsx") as tmp:
                         tmp.write(uploaded.read()); tmp_path=tmp.name
                     with st.spinner("Loading…"):
-                        n=load_platform_xlsx(tmp_path,platform_key)
+                        n=load_platform_xlsx(tmp_path,platform_key,product_key)
                     os.unlink(tmp_path); st.success(f"✅ {n} rows loaded."); st.rerun()
-            if table_has_data(platform_key):
+            if table_has_data(platform_key, product_key):
                 conn=sqlite3.connect(DB_PATH,check_same_thread=False)
                 n=conn.execute(f"SELECT COUNT(*) FROM {cfg['table']}").fetchone()[0]
                 cos=conn.execute(f"SELECT DISTINCT company FROM {cfg['table']} ORDER BY company").fetchall()
-                mn,mx=get_date_range(platform_key); conn.close()
+                mn,mx=get_date_range(platform_key, product_key); conn.close()
                 st.info(f"**{n} rows** · Companies: {', '.join(r[0] for r in cos)} · Dates: {mn} → {mx}")
 
-    if not table_has_data(platform_key):
+    if not table_has_data(platform_key, product_key):
         st.warning(f"No {cfg['label']} data loaded. " + ("Upload via Data Management above." if is_admin else "Ask an admin to upload the data."))
         return
 
-    df = get_platform_df(platform_key)
-    chart_data = build_chart_data(df, platform_key, "articles")
-    html = _build_html(chart_data, platform_key)
+    df = get_platform_df(platform_key, product_key)
+    chart_data = build_chart_data(df, platform_key, "articles", product_key)
+    html = _build_html(chart_data, platform_key, product_key)
     components.html(html, height=980, scrolling=False)
 
     st.markdown("---")

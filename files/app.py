@@ -6,6 +6,7 @@ Light gradient theme | Fixed sidebar | Multi-medium Analytics
 import os, io
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 import streamlit_authenticator as stauth
 import base64
 
@@ -13,6 +14,7 @@ from config import (APP_TITLE, APP_ICON, COOKIE_NAME, COOKIE_KEY, COOKIE_EXPIRY,
                     FALLBACK_CREDENTIALS, ROLE_ACCESS, ROLE_ADMIN, ROLE_CLIENT, ROLE_PARTNER)
 import data_loader as dl
 from platform_dashboard import render_platform_dashboard, init_platform_db, PLATFORMS, table_has_data, get_platform_df, build_chart_data
+from products import PRODUCTS
 
 st.set_page_config(page_title=APP_TITLE, page_icon=APP_ICON, layout="wide",
                    initial_sidebar_state="expanded")
@@ -164,6 +166,43 @@ section[data-testid="stSidebar"] div { color:#111827!important; }
 section[data-testid="stSidebar"] hr {
     border-color:#F3F4F6!important; margin:8px 0!important;
 }
+/* Product switcher buttons — transparent overlay on top of the HTML card */
+section[data-testid="stSidebar"] [data-testid^="stButton-sw_"] > button,
+section[data-testid="stSidebar"] button[kind="secondary"][data-testid*="sw_"] {
+    background: transparent !important;
+    color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    position: relative !important;
+    top: -62px !important;
+    height: 62px !important;
+    margin-bottom: -62px !important;
+    width: 100% !important;
+    cursor: pointer !important;
+    z-index: 10 !important;
+    padding: 0 !important;
+}
+section[data-testid="stSidebar"] [data-testid^="stButton-sw_"] > button:hover,
+section[data-testid="stSidebar"] [data-testid^="stButton-sw_"] > button:focus {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: transparent !important;
+}
+/* Product switcher overlay buttons — transparent, sit over the HTML card */
+section[data-testid="stSidebar"] div[data-testid="stButton"]:has(> button[data-testid="baseButton-secondary"]) + div,
+section[data-testid="stSidebar"] div[data-testid="stButton"] > button[kind="secondary"] {
+    position: relative !important;
+}
+/* Target sw_ buttons by detecting them via JS-injected class (see sidebar JS) */
+section[data-testid="stSidebar"] .sw-btn > button {
+    position: relative !important; top: -64px !important;
+    height: 64px !important; margin-bottom: -64px !important;
+    background: transparent !important; border: none !important;
+    box-shadow: none !important; color: transparent !important;
+    width: 100% !important; cursor: pointer !important; z-index: 5 !important;
+}
+/* Regular sidebar buttons (logout etc) */
 section[data-testid="stSidebar"] .stButton>button {
     background:#F9FAFB!important; color:#374151!important;
     border:1px solid #E5E7EB!important; border-radius:8px!important;
@@ -327,8 +366,30 @@ div[data-testid="metric-container"] div[data-testid="stMetricValue"] {
     setTimeout(expand, 400);
     setTimeout(expand, 1000);
 
+    // Tag sw_ product switcher buttons with sw-btn class so CSS overlay works
+    function tagSwButtons() {
+        var sidebar = window.parent.document.querySelector('section[data-testid="stSidebar"]');
+        if (!sidebar) return;
+        // Find all stButton divs in sidebar; tag the ones whose button text matches a product label
+        var btns = sidebar.querySelectorAll('div[data-testid="stButton"] > button');
+        btns.forEach(function(btn) {
+            var txt = btn.innerText || btn.textContent || '';
+            // Product switcher buttons have short single-word labels (HGEC, Banking etc)
+            // They come right after a prod-card div — tag their parent
+            if (btn.closest('div[data-testid="stButton"]')) {
+                var prev = btn.closest('div[data-testid="stButton"]').previousElementSibling;
+                if (prev && prev.querySelector('[class*="prod-card"]')) {
+                    btn.closest('div[data-testid="stButton"]').classList.add('sw-btn');
+                }
+            }
+        });
+    }
+    tagSwButtons();
+    setTimeout(tagSwButtons, 200);
+    setTimeout(tagSwButtons, 600);
+
     // Re-run on any DOM mutations (Streamlit reruns change the DOM)
-    var observer = new MutationObserver(function() { expand(); });
+    var observer = new MutationObserver(function() { expand(); tagSwButtons(); });
     observer.observe(window.parent.document.body, {
         childList: true, subtree: true, attributes: true,
         attributeFilter: ['aria-expanded', 'class', 'style']
@@ -478,8 +539,9 @@ def render_shows(username):
 
 
 # ── Analytics — multi-medium comparison ─────────────────────────────────────
-def render_analytics(username):
+def render_analytics(username, product_key="hgec"):
     import plotly.graph_objects as go
+    prod_cfg = PRODUCTS.get(product_key, PRODUCTS["hgec"])
 
     st.markdown("## ◈ Analytics — Cross-Platform Intelligence")
 
@@ -489,7 +551,7 @@ def render_analytics(username):
     cols = st.columns(len(available))
     selected = []
     for i,(label,key) in enumerate(available.items()):
-        has = table_has_data(key)
+        has = table_has_data(key, product_key)
         with cols[i]:
             checked = st.checkbox(label, value=has, disabled=not has,
                                   help="No data loaded" if not has else f"{label} data available")
@@ -522,7 +584,7 @@ def render_analytics(username):
 
     dfs = {}
     for label, key in selected:
-        df = get_platform_df(key)
+        df = get_platform_df(key, product_key)
         dfs[label] = df
 
     tab1, tab2, tab3, tab4 = st.tabs([
@@ -701,7 +763,13 @@ def render_banner(name, username):
     role=_get_role(username)
     st.markdown(f"""
     <div class="banner">
-        <div><img src="data:image/png;base64,{logo_small_base64}" width="110"></div>
+        <div style="display:flex;align-items:center;gap:10px">
+            <img src="data:image/png;base64,{logo_small_base64}" width="80">
+            <div style="font-size:.72rem;background:rgba(255,255,255,.22);border-radius:20px;
+                        padding:3px 12px;color:#fff;font-weight:600">
+                {PRODUCTS.get(st.session_state.get("active_product","hgec"),{}).get("label","HGEC")}
+            </div>
+        </div>
         <div style="text-align: right;">
         <div>
             <div class="banner-title">TAM — EIKONA Dashboard</div>
@@ -781,12 +849,110 @@ def render_sidebar(username):
         </div>
         """, unsafe_allow_html=True)
 
-        #st.markdown('<span class="sidebar-section-label"></span>', unsafe_allow_html=True)
+        # ── Product Switcher ────────────────────────────────────────────
+        if "active_product" not in st.session_state:
+            st.session_state["active_product"] = list(PRODUCTS.keys())[0]
+        active_product = st.session_state["active_product"]
+        prod_cfg = PRODUCTS[active_product]
 
-        choices=[(k, label) for k,(icon,label) in nav_items.items() if k in access]
-        labels=[c[1] for c in choices]; keys=[c[0] for c in choices]
-        sel=st.radio("",labels, label_visibility="hidden")
-        selected_key=keys[labels.index(sel)]
+        st.markdown('<div style="padding:6px 10px 2px;font-size:.70rem;font-weight:700;'
+                    'letter-spacing:.09em;text-transform:uppercase;color:#94A3B8;">Product</div>',
+                    unsafe_allow_html=True)
+
+        prod_keys   = list(PRODUCTS.keys())
+        prod_labels = [PRODUCTS[pk]["label"] for pk in prod_keys]
+
+        # Hidden radio — sole state carrier; fully hidden via CSS below
+        sw_sel = st.radio("__product__", prod_labels,
+                          index=prod_keys.index(active_product),
+                          key="sw_radio", label_visibility="collapsed")
+        new_pk = prod_keys[prod_labels.index(sw_sel)]
+        if new_pk != active_product:
+            st.session_state["active_product"] = new_pk
+            st.rerun()
+
+        # Pure-HTML cards — no inline onclick; JS wires clicks via data-pk attribute
+        def _sw_card(pk, is_active):
+            pl  = PRODUCTS[pk]["label"]
+            pc  = PRODUCTS[pk]["color"]
+            icn = PRODUCTS[pk]["icon_svg"]
+            bgc = pc + "18" if is_active else "#FFFFFF"
+            bdr = ("2px solid " + pc) if is_active else "1.5px solid #E2E8F0"
+            tc  = pc if is_active else "#64748B"
+            fw  = "700" if is_active else "500"
+            shd = ("0 0 0 3px " + pc + "30") if is_active else "none"
+            return (
+                '<div data-swpk="' + pk + '" data-swlabel="' + pl + '" '
+                'style="flex:1;background:' + bgc + ';border:' + bdr + ';border-radius:10px;'
+                'padding:10px 4px 8px;text-align:center;cursor:pointer;'
+                'box-shadow:' + shd + ';transition:all .15s;user-select:none;">'
+                '<div style="display:flex;justify-content:center;color:' + tc + ';margin-bottom:3px">' + icn + '</div>'
+                '<div style="font-size:.72rem;font-weight:' + fw + ';color:' + tc + '">' + pl + '</div>'
+                '</div>'
+            )
+
+        cards_html = '<div style="display:flex;gap:8px;padding:0 8px 4px;">'
+        for pk in prod_keys:
+            cards_html += _sw_card(pk, active_product == pk)
+        cards_html += '</div>'
+        st.markdown(cards_html, unsafe_allow_html=True)
+
+        # JS: hide sw_radio + wire card clicks to trigger the hidden radio
+        components.html("""<script>
+(function() {
+    function run() {
+        var sb = window.parent.document.querySelector('section[data-testid="stSidebar"]');
+        if (!sb) return;
+
+        // 1. Hide the first stRadio (sw_radio — product switcher state carrier)
+        var radios = sb.querySelectorAll('[data-testid="stRadio"]');
+        if (radios[0]) {
+            radios[0].style.setProperty('display',  'none',   'important');
+            radios[0].style.setProperty('height',   '0',      'important');
+            radios[0].style.setProperty('overflow', 'hidden', 'important');
+            radios[0].style.setProperty('margin',   '0',      'important');
+            radios[0].style.setProperty('padding',  '0',      'important');
+        }
+
+        // 2. Wire click on each product card to click matching sw_radio label
+        var cards = sb.querySelectorAll('[data-swpk]');
+        cards.forEach(function(card) {
+            if (card._swWired) return;
+            card._swWired = true;
+            card.addEventListener('click', function() {
+                var label = card.getAttribute('data-swlabel');
+                var lbls  = radios[0] ? radios[0].querySelectorAll('label') : [];
+                lbls.forEach(function(l) {
+                    if (l.innerText.trim() === label) l.click();
+                });
+            });
+        });
+    }
+    run();
+    setTimeout(run, 100); setTimeout(run, 400); setTimeout(run, 1000);
+    new MutationObserver(run).observe(window.parent.document.body,
+        {childList: true, subtree: true});
+})();
+</script>""", height=0)
+
+        st.markdown(
+            f'<div style="margin:4px 10px 6px;padding:5px 10px;background:{prod_cfg["color"]}10;'
+            f'border-radius:6px;border-left:3px solid {prod_cfg["color"]};'
+            f'font-size:.68rem;color:{prod_cfg["color"]};font-weight:600;">'
+            f'{prod_cfg["description"]}</div>',
+            unsafe_allow_html=True)
+
+        st.markdown('<div style="padding:8px 10px 2px;font-size:.70rem;font-weight:700;'
+                    'letter-spacing:.09em;text-transform:uppercase;color:#94A3B8;">STRATEGIC OVERVIEW</div>',
+                    unsafe_allow_html=True)
+
+        available_plats = set(prod_cfg["platforms"].keys())
+        choices = [(k, label) for k,(icon,label) in nav_items.items()
+                   if k in access and (k in available_plats or k in ("analytics","admin"))]
+        labels  = [c[1] for c in choices]
+        keys    = [c[0] for c in choices]
+        sel     = st.radio("", labels, label_visibility="collapsed")
+        selected_key = keys[labels.index(sel)]
         # Inject SVG icons via JS after render (targets each nav label by text content)
         icon_js = "\n".join([
             f"injectIcon('{nav_items[k][1]}', `{nav_items[k][0]}`);"
@@ -872,12 +1038,13 @@ def main():
     render_banner(name, username)
     dl.write_audit(username, "login")
 
+    _ap = st.session_state.get("active_product", "hgec")
     dispatch={
-        "analytics": render_analytics,
-        "print":     lambda u: render_platform_dashboard(u,_get_role(u),"print"),
-        "online":    lambda u: render_platform_dashboard(u,_get_role(u),"online"),
-        "tv":        lambda u: render_platform_dashboard(u,_get_role(u),"tv"),
-        "social":    lambda u: render_platform_dashboard(u,_get_role(u),"social"),
+        "analytics": lambda u: render_analytics(u, _ap),
+        "print":     lambda u: render_platform_dashboard(u,_get_role(u),"print",  _ap),
+        "online":    lambda u: render_platform_dashboard(u,_get_role(u),"online", _ap),
+        "tv":        lambda u: render_platform_dashboard(u,_get_role(u),"tv",     _ap),
+        "social":    lambda u: render_platform_dashboard(u,_get_role(u),"social", _ap),
         "admin":     render_admin,
     }
     if panel in dispatch and _can(username,panel):
