@@ -1043,7 +1043,7 @@ def main():
         "analytics": lambda u: render_analytics(u, _ap),
         "print":     lambda u: render_platform_dashboard(u,_get_role(u),"print",  _ap),
         "online":    lambda u: render_platform_dashboard(u,_get_role(u),"online", _ap),
-        "tv":        lambda u: render_platform_dashboard(u,_get_role(u),"tv",     _ap),
+        "tv":        lambda u: render_platform_dashboard(u,_get_role(u),"tv", _ap),
         "social":    lambda u: render_platform_dashboard(u,_get_role(u),"social", _ap),
         "admin":     render_admin,
     }
