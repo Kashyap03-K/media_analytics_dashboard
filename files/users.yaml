@@ -32,6 +32,10 @@ credentials:
       name: Leena Nimbawat
       password: "$2b$12$cZ4SR2nhLAmiAXN3Wslvh.7ipWRGrH4Wq4c8xWe5fSgiBoQFpoveC" 
       role: partner
+    KashyapK:
+      name: Kashyap Kamalia
+      password: "$2b$12$lh8N2exZroo27uW5xAxEourw3G/y95XHlykTgUUfPH6DRtBNrnCU2" 
+      role: admin
 
 cookie:
   name: eikona_auth_cookie
