@@ -40,7 +40,7 @@ PRODUCTS = {
         "full_label":  "Hindi GEC",
         "short":       "hgec",
         "color":       "#4F46E5",
-        "description": "Hindi General Entertainment Channels",
+        "description": "HGEC OVERVIEW",
         "icon_svg":    '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>',
         "platforms": {
             "print": {
@@ -126,7 +126,7 @@ PRODUCTS = {
     # ══════════════════════════════════════════════════════════════════════════
     "banking": {
         "label":       "Banking",
-        "full_label":  "Banking & Finance",
+        "full_label":  "BANKING OVERVIEW",
         "short":       "bank",
         "color":       "#0891B2",
         "description": "Banking & Finance Sector",

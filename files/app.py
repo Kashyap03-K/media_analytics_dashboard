@@ -925,7 +925,7 @@ def render_sidebar(username):
                     f'div[data-testid="stHorizontalBlock"] > div:nth-child({nth}) button {{'
                     f'background:{pc}18!important;border:2px solid {pc}!important;'
                     f'color:{pc}!important;font-weight:700!important;'
-                    f'border-radius:10px!important;padding:28px 4px 8px!important;'
+                    f'border-radius:10px!important;padding:12px 4px 8px!important;'
                     f'font-size:.72rem!important;line-height:1.2!important;'
                     f'white-space:normal!important;height:auto!important;}}'
                 )
@@ -935,7 +935,7 @@ def render_sidebar(username):
                     f'div[data-testid="stHorizontalBlock"] > div:nth-child({nth}) button {{'
                     f'background:#FFFFFF!important;border:1px solid #E2E8F0!important;'
                     f'color:#64748B!important;font-weight:500!important;'
-                    f'border-radius:10px!important;padding:28px 4px 8px!important;'
+                    f'border-radius:10px!important;padding:12px 4px 8px!important;'
                     f'font-size:.72rem!important;line-height:1.2!important;'
                     f'white-space:normal!important;height:auto!important;}}'
                 )
@@ -950,7 +950,7 @@ def render_sidebar(username):
 
         # Section label — rendered AFTER the CSS injection, BEFORE the buttons
         st.markdown(
-            '<div style="padding:6px 10px 2px;font-size:.70rem;font-weight:700;'            'letter-spacing:.09em;text-transform:uppercase;color:#94A3B8;">Product</div>',
+            '<div style="padding:6px 10px 2px;font-size:1.rem;font-weight:700;'            'letter-spacing:.09em;text-transform:uppercase;color:#94A3B8;">Product</div>',
             unsafe_allow_html=True)
 
         # Real st.buttons in columns — CSS above makes them look like cards
@@ -994,15 +994,13 @@ def render_sidebar(username):
 
 
         st.markdown(
-            f'<div style="margin:4px 10px 6px;padding:5px 10px;background:{prod_cfg["color"]}10;'
+            f'<div style="margin:4px 0px 6px;padding:5px 10px;background:{prod_cfg["color"]}10;'
             f'border-radius:6px;border-left:3px solid {prod_cfg["color"]};'
             f'font-size:.68rem;color:{prod_cfg["color"]};font-weight:600;">'
             f'{prod_cfg["description"]}</div>',
             unsafe_allow_html=True)
 
-        st.markdown('<div style="padding:8px 10px 2px;font-size:.70rem;font-weight:700;'
-                    'letter-spacing:.09em;text-transform:uppercase;color:#94A3B8;">Strategic Overview</div>',
-                    unsafe_allow_html=True)
+        
 
         available_plats = set(prod_cfg["platforms"].keys())
         choices = [(k, label) for k,(icon,label) in nav_items.items()
