@@ -8,7 +8,6 @@ import pandas as pd
 import streamlit as st
 import streamlit_authenticator as stauth
 import base64
-import sqlite3
 
 from config import (APP_TITLE, APP_ICON, COOKIE_NAME, COOKIE_KEY, COOKIE_EXPIRY,
                     FALLBACK_CREDENTIALS, ROLE_ACCESS, ROLE_ADMIN, ROLE_CLIENT, ROLE_PARTNER)
@@ -675,7 +674,7 @@ def render_downloads(username):
         FROM channels c LEFT JOIN shows s ON c.channel_id=s.channel_id
         GROUP BY c.channel_id ORDER BY c.compliance_score DESC
     """)
-    st.dataframe(df_comp, use_container_width=True)
+    st.dataframe(df_comp, width="stretch")
     st.download_button("Download Compliance Report",_df_to_csv(df_comp),"compliance.csv","text/csv",key="dl_comp")
     dl.write_audit(username,"bulk_download")
 
@@ -691,7 +690,7 @@ def render_admin(username):
             UNION ALL SELECT 'shows', COUNT(*) FROM shows
             UNION ALL SELECT 'audit_log', COUNT(*) FROM audit_log
         """)
-        st.dataframe(stats, use_container_width=True)
+        st.dataframe(stats, width="stretch")
         st.markdown("#### Platform Tables")
         import pandas as _pd
         plat_stats = [(t, r) for t, r in dl.get_all_table_stats()
@@ -925,7 +924,7 @@ def render_sidebar(username):
                     f'div[data-testid="stHorizontalBlock"] > div:nth-child({nth}) button {{'
                     f'background:{pc}18!important;border:2px solid {pc}!important;'
                     f'color:{pc}!important;font-weight:700!important;'
-                    f'border-radius:10px!important;padding:12px 4px 8px!important;'
+                    f'border-radius:10px!important;padding:28px 4px 8px!important;'
                     f'font-size:.72rem!important;line-height:1.2!important;'
                     f'white-space:normal!important;height:auto!important;}}'
                 )
@@ -935,7 +934,7 @@ def render_sidebar(username):
                     f'div[data-testid="stHorizontalBlock"] > div:nth-child({nth}) button {{'
                     f'background:#FFFFFF!important;border:1px solid #E2E8F0!important;'
                     f'color:#64748B!important;font-weight:500!important;'
-                    f'border-radius:10px!important;padding:12px 4px 8px!important;'
+                    f'border-radius:10px!important;padding:28px 4px 8px!important;'
                     f'font-size:.72rem!important;line-height:1.2!important;'
                     f'white-space:normal!important;height:auto!important;}}'
                 )
@@ -950,7 +949,7 @@ def render_sidebar(username):
 
         # Section label — rendered AFTER the CSS injection, BEFORE the buttons
         st.markdown(
-            '<div style="padding:6px 10px 2px;font-size:1.rem;font-weight:700;'            'letter-spacing:.09em;text-transform:uppercase;color:#94A3B8;">PRODUCT</div>',
+            '<div style="padding:6px 10px 2px;font-size:.70rem;font-weight:700;'            'letter-spacing:.09em;text-transform:uppercase;color:#94A3B8;">Product</div>',
             unsafe_allow_html=True)
 
         # Real st.buttons in columns — CSS above makes them look like cards
@@ -994,15 +993,15 @@ def render_sidebar(username):
 
 
         st.markdown(
-            f'<div style="margin:4px 0px 6px;padding:5px 10px;background:{prod_cfg["color"]}10;'
+            f'<div style="margin:4px 10px 6px;padding:5px 10px;background:{prod_cfg["color"]}10;'
             f'border-radius:6px;border-left:3px solid {prod_cfg["color"]};'
-            f'font-size:1   .rem;color:{prod_cfg["color"]};font-weight:600;">'
+            f'font-size:.68rem;color:{prod_cfg["color"]};font-weight:600;">'
             f'{prod_cfg["description"]}</div>',
             unsafe_allow_html=True)
 
-        #st.markdown('<div style="padding:8px 10px 2px;font-size:.70rem;font-weight:700;'
-        #            'letter-spacing:.09em;text-transform:uppercase;color:#94A3B8;">Strategic Overview</div>',
-        #            unsafe_allow_html=True)
+        st.markdown('<div style="padding:8px 10px 2px;font-size:.70rem;font-weight:700;'
+                    'letter-spacing:.09em;text-transform:uppercase;color:#94A3B8;">Strategic Overview</div>',
+                    unsafe_allow_html=True)
 
         available_plats = set(prod_cfg["platforms"].keys())
         choices = [(k, label) for k,(icon,label) in nav_items.items()

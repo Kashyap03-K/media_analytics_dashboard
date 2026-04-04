@@ -582,7 +582,9 @@ initUI();applyFilters();
 def render_platform_dashboard(username, role, platform_key="print", product_key="hgec"):
     cfg = _cfg(product_key, platform_key)
     is_admin = (role=="admin")
-    _icon = cfg.get('icon', '') if cfg.get('icon', '') not in ('print','online','tv','social','') else {'print':'🗞️','online':'🌐','tv':'📺','social':'📱'}.get(cfg.get('icon',''), '📊')
+    _ICON_MAP = {'print':'🗞️','online':'🌐','tv':'📺','social':'📱'}
+    _raw_icon = cfg.get('icon', '')
+    _icon = _raw_icon if _raw_icon not in ('print','online','tv','social','') else _ICON_MAP.get(_raw_icon, '📊')
     st.markdown(f"## {_icon} {cfg['label']} — Media Intelligence")
 
     if is_admin:

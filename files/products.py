@@ -36,11 +36,11 @@ PRODUCTS = {
     # PRODUCT 1 — HGEC (Hindi General Entertainment Channels)
     # ══════════════════════════════════════════════════════════════════════════
     "hgec": {
-        "label":       "📺 HGEC",
+        "label":       "HGEC",
         "full_label":  "Hindi GEC",
         "short":       "hgec",
         "color":       "#4F46E5",
-        "description": "HGEC OVERVIEW",
+        "description": "Hindi General Entertainment Channels",
         "icon_svg":    '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>',
         "platforms": {
             "print": {
@@ -125,11 +125,11 @@ PRODUCTS = {
     # TV has Total_Seconds + Total_Clips instead of clips/minutes
     # ══════════════════════════════════════════════════════════════════════════
     "banking": {
-        "label":       "💹 Bank",
+        "label":       "Banking",
         "full_label":  "Banking & Finance",
         "short":       "bank",
         "color":       "#0891B2",
-        "description": "Banking OVERVIEW",
+        "description": "Banking & Finance Sector",
         "icon_svg":    '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>',
         "platforms": {
             "print": {
