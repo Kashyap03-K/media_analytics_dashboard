@@ -680,7 +680,7 @@ def render_downloads(username):
 
 def render_admin(username):
     st.markdown("## ⚙️ Admin Panel")
-    t1, t2, t3, t4 = st.tabs(["DB Stats", "Audit Log", "Reload Data", "🗑️ Clear Data"])
+    t1, t2, t4 = st.tabs(["DB Stats", "Audit Log", "🗑️ Clear Data"])
 
     # ── Tab 1: DB Stats ───────────────────────────────────────────────────────
     with t1:
@@ -708,18 +708,7 @@ def render_admin(username):
             use_container_width=True, height=380
         )
 
-    # ── Tab 3: Reload CBC Data ────────────────────────────────────────────────
-    with t3:
-        st.markdown("### Reload Data")
-        st.warning("This REPLACES all channel/show data.")
-        if st.button("🔄 Reload"):
-            with st.spinner("Reloading…"):
-                n_ch = dl.load_channels()
-                n_sh = dl.load_shows()
-                dl.write_audit(username, "data_reload")
-            st.success(f"Reloaded {n_ch} channels, {n_sh} shows")
-
-    # ── Tab 4: Clear Data ─────────────────────────────────────────────────────
+    # ── Tab 3: Clear Data ─────────────────────────────────────────────────────
     with t4:
         st.markdown("### Clear Data")
         st.error(

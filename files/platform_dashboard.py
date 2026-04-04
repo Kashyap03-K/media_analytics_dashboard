@@ -581,35 +581,43 @@ initUI();applyFilters();
 
 def render_platform_dashboard(username, role, platform_key="print", product_key="hgec"):
     cfg = _cfg(product_key, platform_key)
-    is_admin = (role=="admin")
+    is_admin   = (role == "admin")
+    can_upload = (role in ("admin", "partner"))   # partners can upload data
     _ICON_MAP = {'print':'🗞️','online':'🌐','tv':'📺','social':'📱'}
     _raw_icon = cfg.get('icon', '')
     _icon = _raw_icon if _raw_icon not in ('print','online','tv','social','') else _ICON_MAP.get(_raw_icon, '📊')
     st.markdown(f"## {_icon} {cfg['label']} — Media Intelligence")
 
-    if is_admin:
-        with st.expander(f"⚙️ Data Management — {cfg['label']} (Admin)", expanded=not table_has_data(platform_key)):
+    if can_upload:
+        expander_label = f"⚙️ Data Management — {cfg['label']} ({'Admin' if is_admin else 'Partner'})"
+        with st.expander(expander_label, expanded=not table_has_data(platform_key)):
             st.caption(f"Upload your {cfg['label']} Raw Data (.xlsx)")
-            c1,c2 = st.columns([3,1])
+            c1, c2 = st.columns([3, 1])
             with c1:
-                uploaded = st.file_uploader("Upload xlsx",type=["xlsx"],key=f"upload_{platform_key}_{product_key}",label_visibility="collapsed")
+                uploaded = st.file_uploader("Upload xlsx", type=["xlsx"],
+                                            key=f"upload_{platform_key}_{product_key}",
+                                            label_visibility="collapsed")
             with c2:
-                st.markdown("<div style='height:28px'></div>",unsafe_allow_html=True)
-                if uploaded and st.button("Load Data",key=f"load_{platform_key}_{product_key}"):
-                    with tempfile.NamedTemporaryFile(delete=False,suffix=".xlsx") as tmp:
-                        tmp.write(uploaded.read()); tmp_path=tmp.name
+                st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
+                if uploaded and st.button("Load Data", key=f"load_{platform_key}_{product_key}"):
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
+                        tmp.write(uploaded.read()); tmp_path = tmp.name
                     with st.spinner("Loading…"):
-                        n=load_platform_xlsx(tmp_path,platform_key,product_key)
-                    os.unlink(tmp_path); st.success(f"✅ {n} rows loaded."); st.rerun()
+                        n = load_platform_xlsx(tmp_path, platform_key, product_key)
+                    os.unlink(tmp_path)
+                    st.success(f"✅ {n} rows loaded.")
+                    st.rerun()
             if table_has_data(platform_key, product_key):
-                conn=sqlite3.connect(DB_PATH,check_same_thread=False)
-                n=conn.execute(f"SELECT COUNT(*) FROM {cfg['table']}").fetchone()[0]
-                cos=conn.execute(f"SELECT DISTINCT company FROM {cfg['table']} ORDER BY company").fetchall()
-                mn,mx=get_date_range(platform_key, product_key); conn.close()
+                conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+                n   = conn.execute(f"SELECT COUNT(*) FROM {cfg['table']}").fetchone()[0]
+                cos = conn.execute(f"SELECT DISTINCT company FROM {cfg['table']} ORDER BY company").fetchall()
+                mn, mx = get_date_range(platform_key, product_key); conn.close()
                 st.info(f"**{n} rows** · Companies: {', '.join(r[0] for r in cos)} · Dates: {mn} → {mx}")
 
     if not table_has_data(platform_key, product_key):
-        st.warning(f"No {cfg['label']} data loaded. " + ("Upload via Data Management above." if is_admin else "Ask an admin to upload the data."))
+        st.warning(f"No {cfg['label']} data loaded. " + (
+            "Upload via Data Management above." if can_upload else "Ask an admin or partner to upload the data."
+        ))
         return
 
     df = get_platform_df(platform_key, product_key)
