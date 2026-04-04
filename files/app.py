@@ -9,8 +9,10 @@ import streamlit as st
 import streamlit_authenticator as stauth
 import base64
 
+import sqlite3
 from config import (APP_TITLE, APP_ICON, COOKIE_NAME, COOKIE_KEY, COOKIE_EXPIRY,
-                    FALLBACK_CREDENTIALS, ROLE_ACCESS, ROLE_ADMIN, ROLE_CLIENT, ROLE_PARTNER)
+                    FALLBACK_CREDENTIALS, ROLE_ACCESS, ROLE_ADMIN, ROLE_CLIENT, ROLE_PARTNER,
+                    DB_PATH)
 import data_loader as dl
 from platform_dashboard import render_platform_dashboard, init_platform_db, PLATFORMS, table_has_data, get_platform_df, build_chart_data
 from products import PRODUCTS
@@ -697,8 +699,8 @@ def render_admin(username):
                       if t not in ("channels", "shows", "audit_log", "sqlite_sequence")]
         if plat_stats:
             st.dataframe(_pd.DataFrame(plat_stats, columns=["Table", "Rows"]),
-                         use_container_width=True, hide_index=True)
-        st.metric("DB size", f"{os.path.getsize(dl.DB_PATH)/1024:.1f} KB")
+                         width="stretch", hide_index=True)
+        st.metric("DB size", f"{os.path.getsize(DB_PATH)/1024:.1f} KB")
 
     # ── Tab 2: Audit Log ──────────────────────────────────────────────────────
     with t2:
@@ -717,6 +719,24 @@ def render_admin(username):
             "recreated cleanly on next upload. Use this to fix errors caused by bad Excel uploads."
         )
 
+        # Pre-load all table row counts in one pass (avoids per-button silent sqlite failures)
+        try:
+            _table_counts = {t: r for t, r in dl.get_all_table_stats()}
+        except Exception:
+            # Fallback: query directly
+            try:
+                _tc_conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+                _all_tbls = _tc_conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+                _table_counts = {}
+                for (_tn,) in _all_tbls:
+                    try:
+                        _table_counts[_tn] = _tc_conn.execute(f"SELECT COUNT(*) FROM {_tn}").fetchone()[0]
+                    except Exception:
+                        _table_counts[_tn] = 0
+                _tc_conn.close()
+            except Exception:
+                _table_counts = {}
+
         # Per-product / per-platform clear buttons
         for prod_key, prod_info in PRODUCTS.items():
             pc = prod_info["color"]
@@ -732,15 +752,7 @@ def render_admin(username):
             for col, (plat_key, plat_cfg) in zip(cols, plat_items):
                 with col:
                     table = plat_cfg["table"]
-                    try:
-                        _conn = sqlite3.connect(dl.DB_PATH, check_same_thread=False)
-                        _exists = _conn.execute(
-                            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?", (table,)
-                        ).fetchone()[0]
-                        row_count = _conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] if _exists else 0
-                        _conn.close()
-                    except Exception:
-                        row_count = 0
+                    row_count = _table_counts.get(table, 0)
 
                     status_color = "#DC2626" if row_count > 0 else "#9CA3AF"
                     st.markdown(
