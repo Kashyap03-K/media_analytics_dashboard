@@ -6,9 +6,9 @@ Light gradient theme | Fixed sidebar | Multi-medium Analytics
 import os, io
 import pandas as pd
 import streamlit as st
-import streamlit.components.v1 as components
 import streamlit_authenticator as stauth
 import base64
+import sqlite3
 
 from config import (APP_TITLE, APP_ICON, COOKIE_NAME, COOKIE_KEY, COOKIE_EXPIRY,
                     FALLBACK_CREDENTIALS, ROLE_ACCESS, ROLE_ADMIN, ROLE_CLIENT, ROLE_PARTNER)
@@ -91,13 +91,18 @@ button[aria-label*="sidebar"], button[aria-label*="Sidebar"] {
     display: none !important;
 }
 
-/* Hide radio widget's own label ("nav" text) */
+/* Hide radio widget's own label ("Navigation" text) — all Streamlit versions */
 section[data-testid="stSidebar"] [data-testid="stRadio"] > label,
 section[data-testid="stSidebar"] [data-testid="stRadio"] > div[class*="label"],
-section[data-testid="stSidebar"] .stRadio > label {
+section[data-testid="stSidebar"] [data-testid="stRadio"] > div:first-child > p,
+section[data-testid="stSidebar"] [data-testid="stRadio"] > div:first-child,
+section[data-testid="stSidebar"] .stRadio > label,
+section[data-testid="stSidebar"] .stRadio [data-testid="stWidgetLabel"] {
     display: none !important;
     height: 0 !important;
     overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 /* ══ SIDEBAR NAV — no bullets ══ */
@@ -166,43 +171,6 @@ section[data-testid="stSidebar"] div { color:#111827!important; }
 section[data-testid="stSidebar"] hr {
     border-color:#F3F4F6!important; margin:8px 0!important;
 }
-/* Product switcher buttons — transparent overlay on top of the HTML card */
-section[data-testid="stSidebar"] [data-testid^="stButton-sw_"] > button,
-section[data-testid="stSidebar"] button[kind="secondary"][data-testid*="sw_"] {
-    background: transparent !important;
-    color: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    position: relative !important;
-    top: -62px !important;
-    height: 62px !important;
-    margin-bottom: -62px !important;
-    width: 100% !important;
-    cursor: pointer !important;
-    z-index: 10 !important;
-    padding: 0 !important;
-}
-section[data-testid="stSidebar"] [data-testid^="stButton-sw_"] > button:hover,
-section[data-testid="stSidebar"] [data-testid^="stButton-sw_"] > button:focus {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    color: transparent !important;
-}
-/* Product switcher overlay buttons — transparent, sit over the HTML card */
-section[data-testid="stSidebar"] div[data-testid="stButton"]:has(> button[data-testid="baseButton-secondary"]) + div,
-section[data-testid="stSidebar"] div[data-testid="stButton"] > button[kind="secondary"] {
-    position: relative !important;
-}
-/* Target sw_ buttons by detecting them via JS-injected class (see sidebar JS) */
-section[data-testid="stSidebar"] .sw-btn > button {
-    position: relative !important; top: -64px !important;
-    height: 64px !important; margin-bottom: -64px !important;
-    background: transparent !important; border: none !important;
-    box-shadow: none !important; color: transparent !important;
-    width: 100% !important; cursor: pointer !important; z-index: 5 !important;
-}
-/* Regular sidebar buttons (logout etc) */
 section[data-testid="stSidebar"] .stButton>button {
     background:#F9FAFB!important; color:#374151!important;
     border:1px solid #E5E7EB!important; border-radius:8px!important;
@@ -366,30 +334,8 @@ div[data-testid="metric-container"] div[data-testid="stMetricValue"] {
     setTimeout(expand, 400);
     setTimeout(expand, 1000);
 
-    // Tag sw_ product switcher buttons with sw-btn class so CSS overlay works
-    function tagSwButtons() {
-        var sidebar = window.parent.document.querySelector('section[data-testid="stSidebar"]');
-        if (!sidebar) return;
-        // Find all stButton divs in sidebar; tag the ones whose button text matches a product label
-        var btns = sidebar.querySelectorAll('div[data-testid="stButton"] > button');
-        btns.forEach(function(btn) {
-            var txt = btn.innerText || btn.textContent || '';
-            // Product switcher buttons have short single-word labels (HGEC, Banking etc)
-            // They come right after a prod-card div — tag their parent
-            if (btn.closest('div[data-testid="stButton"]')) {
-                var prev = btn.closest('div[data-testid="stButton"]').previousElementSibling;
-                if (prev && prev.querySelector('[class*="prod-card"]')) {
-                    btn.closest('div[data-testid="stButton"]').classList.add('sw-btn');
-                }
-            }
-        });
-    }
-    tagSwButtons();
-    setTimeout(tagSwButtons, 200);
-    setTimeout(tagSwButtons, 600);
-
     // Re-run on any DOM mutations (Streamlit reruns change the DOM)
-    var observer = new MutationObserver(function() { expand(); tagSwButtons(); });
+    var observer = new MutationObserver(function() { expand(); });
     observer.observe(window.parent.document.body, {
         childList: true, subtree: true, attributes: true,
         attributeFilter: ['aria-expanded', 'class', 'style']
@@ -735,28 +681,137 @@ def render_downloads(username):
 
 def render_admin(username):
     st.markdown("## ⚙️ Admin Panel")
-    t1,t2,t3=st.tabs(["DB Stats","Audit Log","Reload Data"])
+    t1, t2, t3, t4 = st.tabs(["DB Stats", "Audit Log", "Reload Data", "🗑️ Clear Data"])
+
+    # ── Tab 1: DB Stats ───────────────────────────────────────────────────────
     with t1:
         st.markdown("### Database Statistics")
-        stats=dl.query_df("""
+        stats = dl.query_df("""
             SELECT 'channels' AS tbl, COUNT(*) AS rows FROM channels
             UNION ALL SELECT 'shows', COUNT(*) FROM shows
             UNION ALL SELECT 'audit_log', COUNT(*) FROM audit_log
         """)
         st.dataframe(stats, use_container_width=True)
+        st.markdown("#### Platform Tables")
+        import pandas as _pd
+        plat_stats = [(t, r) for t, r in dl.get_all_table_stats()
+                      if t not in ("channels", "shows", "audit_log", "sqlite_sequence")]
+        if plat_stats:
+            st.dataframe(_pd.DataFrame(plat_stats, columns=["Table", "Rows"]),
+                         use_container_width=True, hide_index=True)
         st.metric("DB size", f"{os.path.getsize(dl.DB_PATH)/1024:.1f} KB")
+
+    # ── Tab 2: Audit Log ──────────────────────────────────────────────────────
     with t2:
         st.markdown("### Audit Log")
-        st.dataframe(dl.query_df("SELECT ts, username, action FROM audit_log ORDER BY id DESC LIMIT 100"),
-                     use_container_width=True, height=380)
+        st.dataframe(
+            dl.query_df("SELECT ts, username, action FROM audit_log ORDER BY id DESC LIMIT 100"),
+            use_container_width=True, height=380
+        )
+
+    # ── Tab 3: Reload CBC Data ────────────────────────────────────────────────
     with t3:
-        st.markdown("### Reload Data"); st.warning("This REPLACES all channel/show data.")
+        st.markdown("### Reload Data")
+        st.warning("This REPLACES all channel/show data.")
         if st.button("🔄 Reload"):
             with st.spinner("Reloading…"):
-                n_ch=dl.load_channels(); n_sh=dl.load_shows()
-                dl.write_audit(username,"data_reload")
+                n_ch = dl.load_channels()
+                n_sh = dl.load_shows()
+                dl.write_audit(username, "data_reload")
             st.success(f"Reloaded {n_ch} channels, {n_sh} shows")
 
+    # ── Tab 4: Clear Data ─────────────────────────────────────────────────────
+    with t4:
+        st.markdown("### Clear Data")
+        st.error(
+            "⚠️ **Destructive actions below.** "
+            "Clearing a table deletes all its rows and drops the table so it is "
+            "recreated cleanly on next upload. Use this to fix errors caused by bad Excel uploads."
+        )
+
+        # Per-product / per-platform clear buttons
+        for prod_key, prod_info in PRODUCTS.items():
+            pc = prod_info["color"]
+            st.markdown(
+                f'<div style="margin:14px 0 6px;padding:6px 12px;background:{pc}12;'
+                f'border-left:3px solid {pc};border-radius:6px;'
+                f'font-weight:700;font-size:.85rem;color:{pc};">'
+                f'{prod_info["label"]} — {prod_info["description"]}</div>',
+                unsafe_allow_html=True
+            )
+            plat_items = list(prod_info["platforms"].items())
+            cols = st.columns(len(plat_items))
+            for col, (plat_key, plat_cfg) in zip(cols, plat_items):
+                with col:
+                    table = plat_cfg["table"]
+                    try:
+                        _conn = sqlite3.connect(dl.DB_PATH, check_same_thread=False)
+                        _exists = _conn.execute(
+                            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?", (table,)
+                        ).fetchone()[0]
+                        row_count = _conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] if _exists else 0
+                        _conn.close()
+                    except Exception:
+                        row_count = 0
+
+                    status_color = "#DC2626" if row_count > 0 else "#9CA3AF"
+                    st.markdown(
+                        f'<div style="text-align:center;padding:8px 4px 2px;"><div style="font-size:.78rem;font-weight:700;color:#374151;">{plat_cfg["label"]}</div><div style="font-size:.68rem;color:{status_color};margin:2px 0 6px;">{"🔴 " + str(row_count) + " rows" if row_count > 0 else "✅ Empty"}</div></div>',
+                        unsafe_allow_html=True
+                    )
+
+                    btn_key = f"clear_{prod_key}_{plat_key}"
+                    confirm_key = f"confirm_{prod_key}_{plat_key}"
+
+                    if st.session_state.get(confirm_key):
+                        st.warning(f"Delete all {row_count} rows?")
+                        ca, cb = st.columns(2)
+                        with ca:
+                            if st.button("✅ Yes", key=f"yes_{btn_key}", use_container_width=True):
+                                dl.drop_platform_table(table)
+                                init_platform_db(prod_key)
+                                dl.write_audit(username, f"cleared_table:{table}")
+                                st.session_state.pop(confirm_key, None)
+                                st.success("Cleared!")
+                                st.rerun()
+                        with cb:
+                            if st.button("❌ No", key=f"no_{btn_key}", use_container_width=True):
+                                st.session_state.pop(confirm_key, None)
+                                st.rerun()
+                    else:
+                        if row_count > 0:
+                            if st.button("🗑️ Clear", key=btn_key, use_container_width=True):
+                                st.session_state[confirm_key] = True
+                                st.rerun()
+                        else:
+                            st.button("Clear", key=btn_key, use_container_width=True, disabled=True)
+
+        # Audit log clear
+        st.markdown("---")
+        st.markdown("#### Audit Log")
+        try:
+            log_count = dl.query_df("SELECT COUNT(*) as c FROM audit_log").iloc[0]["c"]
+        except Exception:
+            log_count = 0
+        st.write(f"Current entries: **{int(log_count)}**")
+        if st.session_state.get("confirm_clear_audit"):
+            st.warning(f"Delete all {int(log_count)} log entries?")
+            la, lb = st.columns(2)
+            with la:
+                if st.button("✅ Yes, clear", key="yes_clear_audit", use_container_width=True):
+                    deleted = dl.clear_audit_log()
+                    dl.write_audit(username, "cleared_audit_log")
+                    st.session_state.pop("confirm_clear_audit", None)
+                    st.success(f"Deleted {deleted} entries.")
+                    st.rerun()
+            with lb:
+                if st.button("❌ Cancel", key="no_clear_audit", use_container_width=True):
+                    st.session_state.pop("confirm_clear_audit", None)
+                    st.rerun()
+        else:
+            if st.button("🗑️ Clear Audit Log", key="clear_audit_btn"):
+                st.session_state["confirm_clear_audit"] = True
+                st.rerun()
 
 # ── Banner ────────────────────────────────────────────────────────────────────
 def render_banner(name, username):
@@ -855,103 +910,106 @@ def render_sidebar(username):
         active_product = st.session_state["active_product"]
         prod_cfg = PRODUCTS[active_product]
 
-        st.markdown('<div style="padding:6px 10px 2px;font-size:.70rem;font-weight:700;'
-                    'letter-spacing:.09em;text-transform:uppercase;color:#94A3B8;">Product</div>',
-                    unsafe_allow_html=True)
+        # ── Product Switcher ─────────────────────────────────────────────────
+        prod_keys = list(PRODUCTS.keys())
 
-        prod_keys   = list(PRODUCTS.keys())
-        prod_labels = [PRODUCTS[pk]["label"] for pk in prod_keys]
-
-        # Hidden radio — sole state carrier; fully hidden via CSS below
-        sw_sel = st.radio("__product__", prod_labels,
-                          index=prod_keys.index(active_product),
-                          key="sw_radio", label_visibility="collapsed")
-        new_pk = prod_keys[prod_labels.index(sw_sel)]
-        if new_pk != active_product:
-            st.session_state["active_product"] = new_pk
-            st.rerun()
-
-        # Pure-HTML cards — no inline onclick; JS wires clicks via data-pk attribute
-        def _sw_card(pk, is_active):
-            pl  = PRODUCTS[pk]["label"]
+        # Build per-button CSS using nth-child — direct styling, no overlays
+        btn_css = ""
+        for idx, pk in enumerate(prod_keys):
             pc  = PRODUCTS[pk]["color"]
-            icn = PRODUCTS[pk]["icon_svg"]
-            bgc = pc + "18" if is_active else "#FFFFFF"
-            bdr = ("2px solid " + pc) if is_active else "1.5px solid #E2E8F0"
-            tc  = pc if is_active else "#64748B"
-            fw  = "700" if is_active else "500"
-            shd = ("0 0 0 3px " + pc + "30") if is_active else "none"
-            return (
-                '<div data-swpk="' + pk + '" data-swlabel="' + pl + '" '
-                'style="flex:1;background:' + bgc + ';border:' + bdr + ';border-radius:10px;'
-                'padding:10px 4px 8px;text-align:center;cursor:pointer;'
-                'box-shadow:' + shd + ';transition:all .15s;user-select:none;">'
-                '<div style="display:flex;justify-content:center;color:' + tc + ';margin-bottom:3px">' + icn + '</div>'
-                '<div style="font-size:.72rem;font-weight:' + fw + ';color:' + tc + '">' + pl + '</div>'
-                '</div>'
+            is_a = (active_product == pk)
+            nth = idx + 1
+            if is_a:
+                btn_css += (
+                    f'section[data-testid="stSidebar"] '
+                    f'div[data-testid="stHorizontalBlock"] > div:nth-child({nth}) button {{'
+                    f'background:{pc}18!important;border:2px solid {pc}!important;'
+                    f'color:{pc}!important;font-weight:700!important;'
+                    f'border-radius:10px!important;padding:12px 4px 8px!important;'
+                    f'font-size:.72rem!important;line-height:1.2!important;'
+                    f'white-space:normal!important;height:auto!important;}}'
+                )
+            else:
+                btn_css += (
+                    f'section[data-testid="stSidebar"] '
+                    f'div[data-testid="stHorizontalBlock"] > div:nth-child({nth}) button {{'
+                    f'background:#FFFFFF!important;border:1px solid #E2E8F0!important;'
+                    f'color:#64748B!important;font-weight:500!important;'
+                    f'border-radius:10px!important;padding:12px 4px 8px!important;'
+                    f'font-size:.72rem!important;line-height:1.2!important;'
+                    f'white-space:normal!important;height:auto!important;}}'
+                )
+            # Hover style
+            btn_css += (
+                f'section[data-testid="stSidebar"] '
+                f'div[data-testid="stHorizontalBlock"] > div:nth-child({nth}) button:hover {{'
+                f'opacity:0.85!important;}}'
             )
 
-        cards_html = '<div style="display:flex;gap:8px;padding:0 8px 4px;">'
-        for pk in prod_keys:
-            cards_html += _sw_card(pk, active_product == pk)
-        cards_html += '</div>'
-        st.markdown(cards_html, unsafe_allow_html=True)
+        st.markdown(f"<style>{btn_css}</style>", unsafe_allow_html=True)
 
-        # JS: hide sw_radio + wire card clicks to trigger the hidden radio
-        components.html("""<script>
-(function() {
-    function run() {
-        var sb = window.parent.document.querySelector('section[data-testid="stSidebar"]');
-        if (!sb) return;
+        # Section label — rendered AFTER the CSS injection, BEFORE the buttons
+        st.markdown(
+            '<div style="padding:6px 10px 2px;font-size:1.rem;font-weight:700;'            'letter-spacing:.09em;text-transform:uppercase;color:#94A3B8;">PRODUCT</div>',
+            unsafe_allow_html=True)
 
-        // 1. Hide the first stRadio (sw_radio — product switcher state carrier)
-        var radios = sb.querySelectorAll('[data-testid="stRadio"]');
-        if (radios[0]) {
-            radios[0].style.setProperty('display',  'none',   'important');
-            radios[0].style.setProperty('height',   '0',      'important');
-            radios[0].style.setProperty('overflow', 'hidden', 'important');
-            radios[0].style.setProperty('margin',   '0',      'important');
-            radios[0].style.setProperty('padding',  '0',      'important');
-        }
+        # Real st.buttons in columns — CSS above makes them look like cards
+        # Icons injected via JS (same MutationObserver pattern as nav icons)
+        prod_cols = st.columns(len(prod_keys))
+        for i, pk in enumerate(prod_keys):
+            with prod_cols[i]:
+                pl = PRODUCTS[pk]["label"]
+                if st.button(pl, key=f"sw_{pk}", use_container_width=True):
+                    st.session_state["active_product"] = pk
+                    st.rerun()
 
-        // 2. Wire click on each product card to click matching sw_radio label
-        var cards = sb.querySelectorAll('[data-swpk]');
-        cards.forEach(function(card) {
-            if (card._swWired) return;
-            card._swWired = true;
-            card.addEventListener('click', function() {
-                var label = card.getAttribute('data-swlabel');
-                var lbls  = radios[0] ? radios[0].querySelectorAll('label') : [];
-                lbls.forEach(function(l) {
-                    if (l.innerText.trim() === label) l.click();
-                });
-            });
-        });
-    }
-    run();
-    setTimeout(run, 100); setTimeout(run, 400); setTimeout(run, 1000);
-    new MutationObserver(run).observe(window.parent.document.body,
-        {childList: true, subtree: true});
-})();
-</script>""", height=0)
+        # Inject SVG icons into switcher buttons via JS (same pattern as nav)
+        prod_icon_js = "\n".join([
+            f"injectBtnIcon('{PRODUCTS[pk]['label']}', `{PRODUCTS[pk]['icon_svg']}`);"
+            for pk in prod_keys
+        ])
+        st.markdown(f"""
+        <script>
+        (function(){{
+          function injectBtnIcon(label, svgHtml) {{
+            var btns = window.parent.document.querySelectorAll(
+              'section[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"] button'
+            );
+            btns.forEach(function(btn) {{
+              var p = btn.querySelector('p');
+              if (p && p.textContent.trim() === label && !btn.dataset.prodIconDone) {{
+                btn.dataset.prodIconDone = "1";
+                p.innerHTML =
+                  '<span style="display:flex;flex-direction:column;align-items:center;gap:4px;">' +
+                  svgHtml + '<span>' + label + '</span></span>';
+              }}
+            }});
+          }}
+          function run() {{ {prod_icon_js} }}
+          run(); setTimeout(run,200); setTimeout(run,600);
+          new MutationObserver(run).observe(window.parent.document.body,{{childList:true,subtree:true}});
+        }})();
+        </script>
+        """, unsafe_allow_html=True)
+
 
         st.markdown(
-            f'<div style="margin:4px 10px 6px;padding:5px 10px;background:{prod_cfg["color"]}10;'
+            f'<div style="margin:4px 0px 6px;padding:5px 10px;background:{prod_cfg["color"]}10;'
             f'border-radius:6px;border-left:3px solid {prod_cfg["color"]};'
-            f'font-size:.68rem;color:{prod_cfg["color"]};font-weight:600;">'
+            f'font-size:1   .rem;color:{prod_cfg["color"]};font-weight:600;">'
             f'{prod_cfg["description"]}</div>',
             unsafe_allow_html=True)
 
-        st.markdown('<div style="padding:8px 10px 2px;font-size:.70rem;font-weight:700;'
-                    'letter-spacing:.09em;text-transform:uppercase;color:#94A3B8;">STRATEGIC OVERVIEW</div>',
-                    unsafe_allow_html=True)
+        #st.markdown('<div style="padding:8px 10px 2px;font-size:.70rem;font-weight:700;'
+        #            'letter-spacing:.09em;text-transform:uppercase;color:#94A3B8;">Strategic Overview</div>',
+        #            unsafe_allow_html=True)
 
         available_plats = set(prod_cfg["platforms"].keys())
         choices = [(k, label) for k,(icon,label) in nav_items.items()
                    if k in access and (k in available_plats or k in ("analytics","admin"))]
         labels  = [c[1] for c in choices]
         keys    = [c[0] for c in choices]
-        sel     = st.radio("", labels, label_visibility="collapsed")
+        sel     = st.radio("Navigation", labels, label_visibility="hidden")
         selected_key = keys[labels.index(sel)]
         # Inject SVG icons via JS after render (targets each nav label by text content)
         icon_js = "\n".join([
@@ -1043,7 +1101,7 @@ def main():
         "analytics": lambda u: render_analytics(u, _ap),
         "print":     lambda u: render_platform_dashboard(u,_get_role(u),"print",  _ap),
         "online":    lambda u: render_platform_dashboard(u,_get_role(u),"online", _ap),
-        "tv":        lambda u: render_platform_dashboard(u,_get_role(u),"tv", _ap),
+        "tv":        lambda u: render_platform_dashboard(u,_get_role(u),"tv",     _ap),
         "social":    lambda u: render_platform_dashboard(u,_get_role(u),"social", _ap),
         "admin":     render_admin,
     }

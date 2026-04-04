@@ -1,0 +1,32 @@
+# Sensitive data — NEVER push these
+tv_data.db
+data/
+users.toml
+users.yaml
+config_local.py
+*.db
+*.db-shm
+*.db-wal
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+
+

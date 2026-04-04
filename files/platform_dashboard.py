@@ -18,8 +18,8 @@ from products import PRODUCTS, get_product, get_platform as _get_plat_cfg
 PLATFORMS = {
     "print": {
         "label":"Print","icon": "🗞️","table":"media_print",
-        "unit_opts":["Article Count","Readership (000s)","coScore Index","Coverage Volume"],
-        "unit_keys":["articles","readership","index","coverage"],
+        "unit_opts":["Index","Reach (Total OTS)","CCMs (Coverage)","Articles"],
+        "unit_keys":["index","readership","coverage","articles"],
         "col_map":{
             "Company":"company","Article_Id":"article_id","Publication":"source",
             "Edition":"edition","Publication_Date":"publication_date","AdRate":"ad_rate",
@@ -38,8 +38,8 @@ PLATFORMS = {
     },
     "online": {
         "label":"Online","icon":"🌐","table":"media_online",
-        "unit_opts":["Article Count","Mentions","coScore"],
-        "unit_keys":["articles","mentions","coscore"],
+        "unit_opts":["Index","Reach (Total OTS)","CCMs (Coverage)","Articles"],
+        "unit_keys":["index","readership","coverage","articles"],
         "col_map":{
             "Company":"company","Article_Id":"article_id","Website":"source",
             "Publication_Date":"publication_date","Headline":"headline","Genre":"genre",
@@ -57,8 +57,8 @@ PLATFORMS = {
     # Raw_Data3.xlsx columns → internal schema
     "tv": {
         "label":"TV","icon":"📺","table":"media_tv",
-        "unit_opts":["Clip Count","Air Time (min)","Article Length"],
-        "unit_keys":["articles","coverage","index"],
+        "unit_opts":["Seconds","Clips","Index"],
+        "unit_keys":["coverage","articles","index"],
         "col_map":{
             "Company":"company","Clip_Id":"article_id","Channel":"source",
             "Program_Date":"publication_date","Program":"genre",
@@ -74,8 +74,8 @@ PLATFORMS = {
     # Social_Media_ThirdParty_Data xlsx columns → internal schema
     "social": {
         "label":"Social Media","icon":"📱","table":"media_social",
-        "unit_opts":["Post Count","Likes","Views","Engagement"],
-        "unit_keys":["articles","readership","coverage","index"],
+        "unit_opts":["No. of Posts"],
+        "unit_keys":["articles"],
         "col_map":{
             "Company":"company","Post ID":"article_id","Platforms":"source",
             "Post Date":"publication_date","Caption":"headline","Keyword":"genre",
@@ -157,7 +157,6 @@ def load_platform_xlsx(xlsx_path, platform_key, product_key="hgec"):
         shares   = pd.to_numeric(df.get("neutral_art",0),      errors="coerce").fillna(0)
         df["coscore_index"] = likes + comments + shares
     df["_platform"] = cfg["label"]
-    df["_product"]   = product_key
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     cursor = conn.execute(f"PRAGMA table_info({cfg['table']})")
     db_cols = {row[1] for row in cursor.fetchall()}
@@ -583,7 +582,8 @@ initUI();applyFilters();
 def render_platform_dashboard(username, role, platform_key="print", product_key="hgec"):
     cfg = _cfg(product_key, platform_key)
     is_admin = (role=="admin")
-    st.markdown(f"## {cfg['icon']} {cfg['label']} — Media Intelligence")
+    _icon = cfg.get('icon', '') if cfg.get('icon', '') not in ('print','online','tv','social','') else {'print':'🗞️','online':'🌐','tv':'📺','social':'📱'}.get(cfg.get('icon',''), '📊')
+    st.markdown(f"## {_icon} {cfg['label']} — Media Intelligence")
 
     if is_admin:
         with st.expander(f"⚙️ Data Management — {cfg['label']} (Admin)", expanded=not table_has_data(platform_key)):
@@ -613,7 +613,7 @@ def render_platform_dashboard(username, role, platform_key="print", product_key=
     df = get_platform_df(platform_key, product_key)
     chart_data = build_chart_data(df, platform_key, "articles", product_key)
     html = _build_html(chart_data, platform_key, product_key)
-    components.html(html, height=980, scrolling=False)
+    st.components.v1.html(html, height=980, scrolling=False)
 
     st.markdown("---")
     _render_export_section(df, chart_data, platform_key, cfg, role)

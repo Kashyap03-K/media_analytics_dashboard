@@ -36,17 +36,17 @@ PRODUCTS = {
     # PRODUCT 1 — HGEC (Hindi General Entertainment Channels)
     # ══════════════════════════════════════════════════════════════════════════
     "hgec": {
-        "label":       "HGEC",
+        "label":       "📺 HGEC",
         "full_label":  "Hindi GEC",
         "short":       "hgec",
         "color":       "#4F46E5",
-        "description": "Hindi General Entertainment Channels",
+        "description": "HGEC OVERVIEW",
         "icon_svg":    '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>',
         "platforms": {
             "print": {
-                "label":"Print","icon":"print","table":"hgec_print",
-                "unit_opts":["Article Count","Readership (000s)","coScore Index","Coverage Volume"],
-                "unit_keys":["articles","readership","index","coverage"],
+                "label":"Print","icon":"🗞️","table":"hgec_print",
+                "unit_opts":["Index","Reach (Total OTS)","CCMs (Coverage)","Articles"],
+                "unit_keys":["index","readership","coverage","articles"],
                 "col_map":{
                     "Company":"company","Article_Id":"article_id","Publication":"source",
                     "Edition":"edition","Publication_Date":"publication_date","AdRate":"ad_rate",
@@ -64,9 +64,9 @@ PRODUCTS = {
                 "vol_col":"total_vol","read_col":"total_readership","idx_col":"coscore_index",
             },
             "online": {
-                "label":"Online","icon":"online","table":"hgec_online",
-                "unit_opts":["Article Count","Mentions","coScore"],
-                "unit_keys":["articles","mentions","coscore"],
+                "label":"Online","icon":"🌐","table":"hgec_online",
+                "unit_opts":["Index","Reach (Total OTS)","CCMs (Coverage)","Articles"],
+                "unit_keys":["index","readership","coverage","articles"],
                 "col_map":{
                     "Company":"company","Article_Id":"article_id","Website":"source",
                     "Publication_Date":"publication_date","Headline":"headline","Genre":"genre",
@@ -82,9 +82,9 @@ PRODUCTS = {
                 "vol_col":"total_vol","read_col":"total_vol","idx_col":"coscore_index",
             },
             "tv": {
-                "label":"TV","icon":"tv","table":"hgec_tv",
-                "unit_opts":["Clip Count","Air Time (min)","Article Length"],
-                "unit_keys":["articles","coverage","index"],
+                "label":"TV","icon":"📺","table":"hgec_tv",
+                "unit_opts":["Seconds","Clips","Index"],
+                "unit_keys":["coverage","articles","index"],
                 "col_map":{
                     "Company":"company","Clip_Id":"article_id","Channel":"source",
                     "Program_Date":"publication_date","Program":"genre",
@@ -98,9 +98,9 @@ PRODUCTS = {
                 "vol_col":"total_vol","read_col":"total_readership","idx_col":"total_readership",
             },
             "social": {
-                "label":"Social Media","icon":"social","table":"hgec_social",
-                "unit_opts":["Post Count","Likes","Views","Engagement"],
-                "unit_keys":["articles","readership","coverage","index"],
+                "label":"Social Media","icon":"📱","table":"hgec_social",
+                "unit_opts":["No. of Posts"],
+                "unit_keys":["articles"],
                 "col_map":{
                     "Company":"company","Post ID":"article_id","Platforms":"source",
                     "Post Date":"publication_date","Caption":"headline","Keyword":"genre",
@@ -125,17 +125,17 @@ PRODUCTS = {
     # TV has Total_Seconds + Total_Clips instead of clips/minutes
     # ══════════════════════════════════════════════════════════════════════════
     "banking": {
-        "label":       "Banking",
+        "label":       "💹 Bank",
         "full_label":  "Banking & Finance",
         "short":       "bank",
         "color":       "#0891B2",
-        "description": "Banking & Finance Sector",
+        "description": "Banking OVERVIEW",
         "icon_svg":    '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>',
         "platforms": {
             "print": {
-                "label":"Print","icon":"print","table":"bank_print",
-                "unit_opts":["Article Count","Coverage Volume","coScore Index","EAV (INR)"],
-                "unit_keys":["articles","coverage","index","eav"],
+                "label":"Print","icon":"🗞️","table":"bank_print",
+                "unit_opts":["Index","Reach (Total OTS)","CCMs (Coverage)","Articles"],
+                "unit_keys":["index","readership","coverage","articles"],
                 "col_map":{
                     "Company":"company","Article_Id":"article_id","Publication":"source",
                     "Edition":"edition","Publication_Date":"publication_date","AdRate":"ad_rate",
@@ -157,9 +157,9 @@ PRODUCTS = {
                 "extra_kpi":"total_eav",
             },
             "online": {
-                "label":"Online","icon":"online","table":"bank_online",
-                "unit_opts":["Article Count","Coverage Volume","coScore Index"],
-                "unit_keys":["articles","coverage","index"],
+                "label":"Online","icon":"🌐","table":"bank_online",
+                "unit_opts":["Index","Reach (Total OTS)","CCMs (Coverage)","Articles"],
+                "unit_keys":["index","readership","coverage","articles"],
                 "col_map":{
                     # Online uses Group_Name not Company
                     "Group_Name":"company","Article_Id":"article_id","Publication":"source",
@@ -178,9 +178,9 @@ PRODUCTS = {
                 "vol_col":"total_vol","read_col":"total_readership","idx_col":"coscore_index",
             },
             "tv": {
-                "label":"TV","icon":"tv","table":"bank_tv",
-                "unit_opts":["Clip Count","Air Time (sec)","coScore Index"],
-                "unit_keys":["articles","coverage","index"],
+                "label":"TV","icon":"📺","table":"bank_tv",
+                "unit_opts":["Seconds","Clips","Index"],
+                "unit_keys":["coverage","articles","index"],
                 "col_map":{
                     "Company":"company","Clip_Id":"article_id","Channel":"source",
                     "Program_Date":"publication_date","Program":"genre",
@@ -211,4 +211,3 @@ def get_platform(product_key: str, platform_key: str) -> dict:
 
 def all_platform_keys(product_key: str) -> list:
     return list(PRODUCTS[product_key]["platforms"].keys())
-

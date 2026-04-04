@@ -235,6 +235,64 @@ def write_audit(username: str, action: str) -> None:
         conn.close()
 
 
+def clear_platform_table(table_name: str) -> int:
+    """DELETE all rows from a platform table. Returns rows deleted."""
+    conn = get_connection()
+    try:
+        row = conn.execute(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?", (table_name,)
+        ).fetchone()
+        if not row or row[0] == 0:
+            return 0
+        count = conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
+        conn.execute(f"DELETE FROM {table_name}")
+        conn.commit()
+        return count
+    finally:
+        conn.close()
+
+
+def drop_platform_table(table_name: str) -> None:
+    """Fully DROP a platform table so it is recreated cleanly on next init."""
+    conn = get_connection()
+    try:
+        conn.execute(f"DROP TABLE IF EXISTS {table_name}")
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def clear_audit_log() -> int:
+    """Delete all audit log entries. Returns count deleted."""
+    conn = get_connection()
+    try:
+        count = conn.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0]
+        conn.execute("DELETE FROM audit_log")
+        conn.commit()
+        return count
+    finally:
+        conn.close()
+
+
+def get_all_table_stats() -> list:
+    """Return list of (table_name, row_count) for every table in the DB."""
+    conn = get_connection()
+    try:
+        tables = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
+        ).fetchall()
+        results = []
+        for (tbl,) in tables:
+            try:
+                cnt = conn.execute(f"SELECT COUNT(*) FROM {tbl}").fetchone()[0]
+            except Exception:
+                cnt = 0
+            results.append((tbl, cnt))
+        return results
+    finally:
+        conn.close()
+
+
 if __name__ == "__main__":
     bootstrap()
     print("\n✅  Database ready:", DB_PATH)
