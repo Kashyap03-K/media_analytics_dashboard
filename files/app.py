@@ -46,13 +46,33 @@ html, body, [class*="css"] { font-family:'Plus Jakarta Sans',sans-serif!importan
 /* ══ LIGHT GRADIENT BACKGROUND ══ */
 .stApp {
     background-image: url("https://static.vecteezy.com/system/resources/thumbnails/004/782/942/small/blue-sky-gradient-watercolor-background-free-vector.jpg");
-    background-size: cover; /* Makes the image stretch to fill the screen */
-    background-position: center; /* Keeps the image centered */
-    background-repeat: no-repeat; /* Prevents tiling */
-    background-attachment: fixed; /* Keeps the background still when scrolling */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    min-height: 100vh !important;
+    overflow-y: auto !important;
 }
-#MainMenu, footer, header { display:none!important; }   
-.block-container { padding-top:.6rem!important; padding-bottom:2rem!important; }
+/* Main content area — expands with content, never clips */
+.stAppViewContainer, [data-testid="stAppViewContainer"] {
+    min-height: 100vh !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    height: auto !important;
+}
+[data-testid="stMain"], .stMain {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    height: auto !important;
+    min-height: 100vh !important;
+}
+#MainMenu, footer, header { display:none!important; }
+.block-container {
+    padding-top: .6rem !important;
+    padding-bottom: 5rem !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+}
 
 /* ══ WHITE SIDEBAR — always visible ══ */
 section[data-testid="stSidebar"] {
@@ -682,7 +702,7 @@ def render_downloads(username):
 
 def render_admin(username):
     st.markdown("## ⚙️ Admin Panel")
-    t1, t2, t4 = st.tabs(["DB Stats", "Audit Log", "🗑️ Clear Data"])
+    t1, t2, t4, t5 = st.tabs(["DB Stats", "Audit Log", "🗑️ Clear Data", "👥 Users"])
 
     # ── Tab 1: DB Stats ───────────────────────────────────────────────────────
     with t1:
@@ -812,6 +832,115 @@ def render_admin(username):
             if st.button("🗑️ Clear Audit Log", key="clear_audit_btn"):
                 st.session_state["confirm_clear_audit"] = True
                 st.rerun()
+
+    # ── Tab 5: User Management ────────────────────────────────────────────────
+    with t5:
+        import yaml, bcrypt
+        yaml_path = os.path.join(os.path.dirname(__file__), "users.yaml")
+
+        def _load_yaml():
+            if os.path.exists(yaml_path):
+                with open(yaml_path, "r") as f:
+                    return yaml.safe_load(f) or {"credentials": {"usernames": {}}}
+            return {"credentials": {"usernames": {}}}
+
+        def _save_yaml(data):
+            with open(yaml_path, "w") as f:
+                yaml.dump(data, f, default_flow_style=False, allow_unicode=True)
+
+        st.markdown("### 👥 User Management")
+        st.info("Changes take effect on next login. Passwords are bcrypt-hashed before saving.")
+
+        user_data = _load_yaml()
+        users_dict = user_data.get("credentials", {}).get("usernames", {})
+
+        # ── Existing Users Table ──────────────────────────────────────────────
+        st.markdown("#### Current Users")
+        if users_dict:
+            import pandas as _pd2
+            rows = [{"Username": u, "Name": v.get("name",""), "Role": v.get("role","")}
+                    for u, v in users_dict.items()]
+            st.dataframe(_pd2.DataFrame(rows), width="stretch", hide_index=True)
+        else:
+            st.warning("No users found in users.yaml — only fallback credentials are active.")
+
+        st.markdown("---")
+
+        # ── Add / Edit User ───────────────────────────────────────────────────
+        st.markdown("#### ➕ Add / Edit User")
+        with st.form("user_form", clear_on_submit=True):
+            col1, col2 = st.columns(2)
+            with col1:
+                new_uname = st.text_input("Username", placeholder="e.g. john_doe").strip().lower()
+                new_name  = st.text_input("Display Name", placeholder="e.g. John Doe").strip()
+            with col2:
+                new_role  = st.selectbox("Role", ["admin", "partner", "client"])
+                new_pass  = st.text_input("Password", type="password",
+                                          placeholder="Leave blank to keep existing")
+            submitted = st.form_submit_button("💾 Save User", use_container_width=True)
+
+        if submitted:
+            if not new_uname:
+                st.error("Username cannot be empty.")
+            elif not new_name:
+                st.error("Display Name cannot be empty.")
+            else:
+                user_data = _load_yaml()
+                users_dict = user_data.setdefault("credentials", {}).setdefault("usernames", {})
+                is_edit = new_uname in users_dict
+                if is_edit and not new_pass:
+                    # Keep existing password
+                    users_dict[new_uname]["name"] = new_name
+                    users_dict[new_uname]["role"] = new_role
+                    _save_yaml(user_data)
+                    dl.write_audit(username, f"user_edited:{new_uname}")
+                    st.success(f"✅ User **{new_uname}** updated (password unchanged).")
+                elif not new_pass and not is_edit:
+                    st.error("Password is required for new users.")
+                else:
+                    hashed = bcrypt.hashpw(new_pass.encode(), bcrypt.gensalt()).decode()
+                    users_dict[new_uname] = {"name": new_name, "role": new_role, "password": hashed}
+                    _save_yaml(user_data)
+                    action = "user_edited" if is_edit else "user_added"
+                    dl.write_audit(username, f"{action}:{new_uname}")
+                    st.success(f"✅ User **{new_uname}** {'updated' if is_edit else 'added'} with role **{new_role}**.")
+                st.rerun()
+
+        # ── Delete User ───────────────────────────────────────────────────────
+        st.markdown("---")
+        st.markdown("#### 🗑️ Delete User")
+        user_data_del = _load_yaml()
+        users_now = list(user_data_del.get("credentials", {}).get("usernames", {}).keys())
+        deletable = [u for u in users_now if u != username]  # can't delete yourself
+
+        if not deletable:
+            st.info("No other users to delete.")
+        else:
+            del_col1, del_col2 = st.columns([3, 1])
+            with del_col1:
+                del_user = st.selectbox("Select user to delete", deletable, key="del_user_sel")
+            with del_col2:
+                st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
+                if st.button("🗑️ Delete", key="del_user_btn", use_container_width=True):
+                    st.session_state["confirm_del_user"] = del_user
+
+            if st.session_state.get("confirm_del_user"):
+                target = st.session_state["confirm_del_user"]
+                st.warning(f"Permanently delete user **{target}**?")
+                dc1, dc2 = st.columns(2)
+                with dc1:
+                    if st.button("✅ Yes, delete", key="yes_del_user", use_container_width=True):
+                        user_data_del = _load_yaml()
+                        user_data_del["credentials"]["usernames"].pop(target, None)
+                        _save_yaml(user_data_del)
+                        dl.write_audit(username, f"user_deleted:{target}")
+                        st.session_state.pop("confirm_del_user", None)
+                        st.success(f"✅ User **{target}** deleted.")
+                        st.rerun()
+                with dc2:
+                    if st.button("❌ Cancel", key="no_del_user", use_container_width=True):
+                        st.session_state.pop("confirm_del_user", None)
+                        st.rerun()
 
 # ── Banner ────────────────────────────────────────────────────────────────────
 def render_banner(name, username):

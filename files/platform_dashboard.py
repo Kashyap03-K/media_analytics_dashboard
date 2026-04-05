@@ -137,6 +137,81 @@ def init_platform_db(product_key: str = None):
     conn.commit()
     conn.close()
 
+def validate_platform_xlsx(xlsx_path, platform_key, product_key="hgec"):
+    """
+    Validate an Excel file before loading.
+    Returns (is_valid: bool, errors: list[str], warnings: list[str], preview_df: DataFrame|None)
+    """
+    cfg = _cfg(product_key, platform_key)
+    errors, warnings = [], []
+
+    # 1. Can we read it?
+    try:
+        df = pd.read_excel(xlsx_path)
+        df.columns = [c.strip() for c in df.columns]
+    except Exception as e:
+        return False, [f"Cannot read file: {e}"], [], None
+
+    if df.empty:
+        return False, ["File is empty — no rows found."], [], None
+
+    # 2. Check required source columns exist (before rename)
+    col_map     = cfg["col_map"]
+    raw_cols    = set(df.columns)
+    mapped_cols = set(col_map.keys())
+
+    # Required source columns = those that map to critical DB columns
+    critical_targets = {"company", "publication_date", "total_vol", "total_articles"}
+    required_sources = {src for src, tgt in col_map.items() if tgt in critical_targets}
+    missing_required = required_sources - raw_cols
+
+    if missing_required:
+        errors.append(
+            f"Missing required columns: {', '.join(sorted(missing_required))}. "
+            f"Expected columns for {cfg['label']}: {', '.join(sorted(mapped_cols))}"
+        )
+
+    # 3. Check how many expected columns are present
+    matched   = mapped_cols & raw_cols
+    unmatched = mapped_cols - raw_cols
+    match_pct = len(matched) / len(mapped_cols) * 100 if mapped_cols else 0
+
+    if match_pct < 40 and not errors:
+        errors.append(
+            f"Only {len(matched)}/{len(mapped_cols)} expected columns found ({match_pct:.0f}% match). "
+            f"This does not look like a {cfg['label']} file. "
+            f"Expected: {', '.join(sorted(mapped_cols))}"
+        )
+    elif unmatched:
+        warnings.append(
+            f"{len(unmatched)} optional columns not found (will use defaults): "
+            f"{', '.join(sorted(unmatched))}"
+        )
+
+    # 4. Check date column is parseable
+    date_src = next((s for s, t in col_map.items() if t == "publication_date" and s in raw_cols), None)
+    if date_src:
+        parsed = pd.to_datetime(df[date_src], errors="coerce")
+        bad_dates = parsed.isna().sum()
+        if bad_dates == len(df):
+            errors.append(f"Date column '{date_src}' has no valid dates — check the date format.")
+        elif bad_dates > 0:
+            warnings.append(f"Date column '{date_src}': {bad_dates} rows have unparseable dates (will be set to null).")
+
+    # 5. Check numeric columns have numeric data
+    numeric_targets = {"total_vol", "total_articles", "beneficial_vol", "neutral_vol", "adverse_vol"}
+    for src, tgt in col_map.items():
+        if tgt in numeric_targets and src in raw_cols:
+            coerced = pd.to_numeric(df[src], errors="coerce")
+            bad = coerced.isna().sum()
+            if bad > len(df) * 0.5:
+                warnings.append(f"Column '{src}': more than 50% of values are non-numeric.")
+
+    is_valid = len(errors) == 0
+    preview  = df.head(5) if is_valid else None
+    return is_valid, errors, warnings, preview
+
+
 def load_platform_xlsx(xlsx_path, platform_key, product_key="hgec"):
     cfg = _cfg(product_key, platform_key)
     if not os.path.exists(xlsx_path): return 0
@@ -411,10 +486,12 @@ canvas{{display:block}}
 <div style="padding:0 16px 16px">
   <div class="panel">
     <div class="pt">Company Detail</div>
+    <div style="overflow-x:auto;width:100%">
     <table class="dt" style="width:100%">
       <thead><tr><th>Company</th><th>Count</th><th>SOV %</th><th style="width:35%">Share</th><th>Volume</th></tr></thead>
       <tbody id="sovTbl"></tbody>
     </table>
+    </div>
   </div>
 </div>
 
@@ -602,11 +679,27 @@ def render_platform_dashboard(username, role, platform_key="print", product_key=
                 if uploaded and st.button("Load Data", key=f"load_{platform_key}_{product_key}"):
                     with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
                         tmp.write(uploaded.read()); tmp_path = tmp.name
-                    with st.spinner("Loading…"):
-                        n = load_platform_xlsx(tmp_path, platform_key, product_key)
-                    os.unlink(tmp_path)
-                    st.success(f"✅ {n} rows loaded.")
-                    st.rerun()
+                    # ── Validate before loading ──────────────────────────────
+                    with st.spinner("Validating…"):
+                        is_valid, errs, warns, preview = validate_platform_xlsx(
+                            tmp_path, platform_key, product_key)
+                    if not is_valid:
+                        os.unlink(tmp_path)
+                        st.error("❌ **File validation failed — data not loaded.**")
+                        for e in errs:
+                            st.error(f"• {e}")
+                        if warns:
+                            for w in warns:
+                                st.warning(f"• {w}")
+                    else:
+                        if warns:
+                            for w in warns:
+                                st.warning(f"⚠️ {w}")
+                        with st.spinner("Loading…"):
+                            n = load_platform_xlsx(tmp_path, platform_key, product_key)
+                        os.unlink(tmp_path)
+                        st.success(f"✅ {n} rows loaded successfully.")
+                        st.rerun()
             if table_has_data(platform_key, product_key):
                 conn = sqlite3.connect(DB_PATH, check_same_thread=False)
                 n   = conn.execute(f"SELECT COUNT(*) FROM {cfg['table']}").fetchone()[0]
@@ -623,7 +716,10 @@ def render_platform_dashboard(username, role, platform_key="print", product_key=
     df = get_platform_df(platform_key, product_key)
     chart_data = build_chart_data(df, platform_key, "articles", product_key)
     html = _build_html(chart_data, platform_key, product_key)
-    st.components.v1.html(html, height=980, scrolling=False)
+    # Dynamic height: base 820px + 38px per company row
+    n_companies = df["company"].nunique() if "company" in df.columns else 10
+    iframe_height = max(980, 820 + (n_companies * 38))
+    st.components.v1.html(html, height=iframe_height, scrolling=True)
 
     st.markdown("---")
     _render_export_section(df, chart_data, platform_key, cfg, role)
