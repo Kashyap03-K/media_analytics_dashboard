@@ -97,9 +97,10 @@ def _upsert_df(df: pd.DataFrame, table: str, conn: sqlite3.Connection) -> int:
 
 
 def load_channels() -> int:
-    """Load private_channels.csv → SQLite channels table."""
+    """Load private_channels.csv → SQLite channels table. Skips silently if file missing."""
     if not os.path.exists(CHANNELS_CSV):
-        raise FileNotFoundError(f"Missing: {CHANNELS_CSV}")
+        log.warning("Channels CSV not found at %s — skipping load.", CHANNELS_CSV)
+        return 0
     df = pd.read_csv(CHANNELS_CSV, dtype=str)
     df["compliance_score"] = pd.to_numeric(df["compliance_score"], errors="coerce")
     df["frequency_mhz"]    = pd.to_numeric(df["frequency_mhz"],    errors="coerce")
@@ -114,9 +115,10 @@ def load_channels() -> int:
 
 
 def load_shows() -> int:
-    """Load private_shows.csv → SQLite shows table."""
+    """Load private_shows.csv → SQLite shows table. Skips silently if file missing."""
     if not os.path.exists(SHOWS_CSV):
-        raise FileNotFoundError(f"Missing: {SHOWS_CSV}")
+        log.warning("Shows CSV not found at %s — skipping load.", SHOWS_CSV)
+        return 0
     df = pd.read_csv(SHOWS_CSV, dtype=str)
     for col in ("runtime_mins", "weekly_slots", "total_episodes"):
         df[col] = pd.to_numeric(df[col], errors="coerce")
@@ -132,7 +134,7 @@ def load_shows() -> int:
 
 
 def bootstrap() -> None:
-    """Full init: schema + data load. Safe to call repeatedly."""
+    """Full init: schema + data load. Safe to call repeatedly. CSV files are optional."""
     init_db()
     load_channels()
     load_shows()
