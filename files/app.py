@@ -246,6 +246,21 @@ div[data-testid="metric-container"] div[data-testid="stMetricValue"] {
 }
 .stButton>button:hover { background:var(--accent2)!important; }
 
+/* ══ REFRESH BUTTON — ghost style (last column in the banner row) ══ */
+div[data-testid="stColumns"] > div[data-testid="stColumn"]:last-child .stButton > button {
+    background: transparent !important;
+    color: #64748B !important;
+    border: 1px solid #E2E8F0 !important;
+    font-size: .78rem !important;
+    padding: 5px 10px !important;
+    font-weight: 500 !important;
+}
+div[data-testid="stColumns"] > div[data-testid="stColumn"]:last-child .stButton > button:hover {
+    background: #EEF2FF !important;
+    color: #4F46E5 !important;
+    border-color: #C7D2FE !important;
+}
+
 .stDownloadButton>button {
     background:#EFF6FF!important; color:var(--accent)!important;
     border:1px solid #BFDBFE!important; border-radius:7px!important;
@@ -967,6 +982,38 @@ def render_banner(name, username):
         </div>
     </div>
     """, unsafe_allow_html=True)
+
+    # ── Refresh button — reruns the app without touching the session/browser ──
+    st.markdown("""
+    <style>
+    div[data-testid="stHorizontalBlock"]:has(> div > div[data-testid="stButton"] > button[data-testid="refresh-btn"]) {
+        margin-top: -8px !important;
+        margin-bottom: 4px !important;
+    }
+    button[data-testid="refresh-btn"] {
+        background: transparent !important;
+        color: #64748B !important;
+        border: 1px solid #E2E8F0 !important;
+        border-radius: 7px !important;
+        padding: 4px 14px !important;
+        font-size: .78rem !important;
+        font-weight: 500 !important;
+        float: right !important;
+        transition: all .15s ease !important;
+    }
+    button[data-testid="refresh-btn"]:hover {
+        background: #EEF2FF !important;
+        color: #4F46E5 !important;
+        border-color: #C7D2FE !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    _, _, _, refresh_col = st.columns([4, 1, 1, 1])
+    with refresh_col:
+        if st.button("🔄 Refresh", key="global_refresh_btn", use_container_width=True,
+                     help="Reload data without logging out"):
+            st.rerun()
 
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
