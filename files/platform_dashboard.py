@@ -376,6 +376,7 @@ def _build_html(chart_data, platform_key, product_key="hgec"):
     kpi3_lbl  = "Total Likes" if platform_key=="social" else "Reach & Visibility"
 
     return f"""<!DOCTYPE html><html><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 *{{box-sizing:border-box;margin:0;padding:0}}
 body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F8FAFF;color:#1E293B;font-size:13px}}
@@ -397,7 +398,8 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgro
 .kpi-sub{{font-size:10px;color:#94A3B8;margin-top:3px}}
 .grid-2{{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px 10px}}
 .panel{{background:#fff;border:1px solid #E2E8F0;border-radius:10px;padding:14px 15px;box-shadow:0 1px 3px rgba(0,0,0,.04)}}
-.pt{{font-size:12px;font-weight:600;color:#1E293B;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}}
+.pt{{font-size:12px;font-weight:600;color:#1E293B;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px}}
+.pt-controls{{display:flex;align-items:center;gap:6px;flex-wrap:wrap}}
 .legend{{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}}
 .li{{display:flex;align-items:center;gap:4px;font-size:10px;color:#64748B}}
 .ld{{width:9px;height:9px;border-radius:2px;flex-shrink:0}}
@@ -412,13 +414,38 @@ canvas{{display:block}}
 .dt td{{padding:4px 5px;border-bottom:1px solid #F1F5F9;color:#475569}}
 .dt tr:last-child td{{border-bottom:none}}
 .sov-bar{{height:6px;border-radius:3px;background:{plat_color};margin-top:3px;transition:width .4s}}
+.ct-btn{{background:none;border:1px solid #E2E8F0;border-radius:5px;padding:3px 6px;cursor:pointer;font-size:11px;color:#64748B;transition:all .15s}}
+.ct-btn.active{{background:{plat_color};color:#fff;border-color:{plat_color}}}
+.ct-btn:hover:not(.active){{background:#F1F5F9}}
+.unit-sel{{font-size:10px;padding:2px 6px;border:1px solid {plat_color}55;border-radius:5px;background:{plat_light};color:{plat_color};font-weight:600;cursor:pointer;outline:none;height:22px}}
+.trend-dates{{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px}}
+.trend-dates label{{font-size:10px;color:#64748B;font-weight:600;text-transform:uppercase;letter-spacing:.05em}}
+.trend-dates input[type=date]{{padding:2px 6px;font-size:11px;border:1px solid #CBD5E1;border-radius:5px;background:#F8FAFF;color:#1E293B;height:24px;outline:none}}
+.co-checks{{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}}
+.co-cb{{display:flex;align-items:center;gap:4px;cursor:pointer;font-size:10px;color:#475569;padding:2px 7px;border:1px solid #E2E8F0;border-radius:20px;background:#fff;transition:all .15s;user-select:none}}
+.co-cb.checked{{border-color:{plat_color};background:{plat_light};color:{plat_color};font-weight:600}}
+/* ── Responsive / zoom-aware layout ── */
+@media (max-width:900px){{
+  .grid-2{{grid-template-columns:1fr!important}}
+  .kpi-row{{grid-template-columns:1fr 1fr}}
+  .split{{grid-template-columns:1fr!important}}
+  .split table{{display:none}}
+}}
+@media (max-width:600px){{
+  .kpi-row{{grid-template-columns:1fr}}
+  .filters{{flex-direction:column;align-items:stretch}}
+  .fg select,.fg input{{min-width:unset;width:100%}}
+  .pt{{flex-direction:column;align-items:flex-start}}
+  .pt-controls{{flex-wrap:wrap}}
+  .ttog .tt{{padding:3px 5px;font-size:9px}}
+  .kpi-val{{font-size:18px}}
+}}
 </style></head><body>
 
 <div class="filters">
   <div class="fg"><label>Start Date</label><input type="date" id="f-start" onchange="applyFilters()"></div>
   <div class="fg"><label>End Date</label><input type="date" id="f-end" onchange="applyFilters()"></div>
   <div class="fg"><label>Company</label><select id="f-company" onchange="applyFilters()"><option value="all">All Companies</option></select></div>
-  <div class="fg"><label>Unit</label><select id="f-unit" onchange="applyFilters()"></select></div>
   <button class="export-btn" onclick="doExport()">⬇ Export CSV</button>
 </div>
 
@@ -441,13 +468,40 @@ canvas{{display:block}}
   </div>
 </div>
 
+<!-- ROW 1: SOV + Sentiment -->
 <div class="grid-2">
   <div class="panel">
-    <div class="pt">Share of Voice (SOV)</div>
-    <div style="position:relative;width:100%;height:170px"><canvas id="sovChart"></canvas></div>
+    <div class="pt">
+      <span>Share of Voice (SOV)</span>
+      <div class="pt-controls">
+        <select class="unit-sel" id="sov-unit" onchange="applyFilters()"></select>
+        <div class="ttog" id="sov-type-tog">
+          <button class="tt active" onclick="setSovType('doughnut',this)" title="Doughnut">🍩</button>
+          <button class="tt" onclick="setSovType('pie',this)" title="Pie">🥧</button>
+          <button class="tt" onclick="setSovType('bar',this)" title="Bar">📊</button>
+          <button class="tt" onclick="setSovType('stacked100',this)" title="100% Stack">📶</button>
+        </div>
+      </div>
+    </div>
+    <div class="split" id="sov-split" style="grid-template-columns:1fr 160px">
+      <div><div style="position:relative;width:100%;height:180px"><canvas id="sovChart"></canvas></div></div>
+      <table class="dt">
+        <thead><tr><th>Platform</th><th>%</th></tr></thead>
+        <tbody id="sovTbl"></tbody>
+      </table>
+    </div>
   </div>
   <div class="panel">
-    <div class="pt">Sentiment / Clip Type</div>
+    <div class="pt">
+      <span>Sentiment / Clip Type</span>
+      <div class="pt-controls">
+        <select class="unit-sel" id="sent-unit" onchange="applyFilters()"></select>
+        <div class="ttog">
+          <button class="tt active" onclick="setSentType('bar',this)" title="Stacked Bar">📊</button>
+          <button class="tt" onclick="setSentType('doughnut',this)" title="Doughnut">🍩</button>
+        </div>
+      </div>
+    </div>
     <div class="legend">
       <div class="li"><div class="ld" style="background:#16A34A"></div>Beneficial / Special Feature</div>
       <div class="li"><div class="ld" style="background:#6B7280"></div>Neutral / News</div>
@@ -457,9 +511,20 @@ canvas{{display:block}}
   </div>
 </div>
 
-<div class="grid-2">
+<!-- ROW 2: Genre + Trend (trend is now wider / taller) -->
+<div class="grid-2" style="grid-template-columns:1fr 2fr">
   <div class="panel">
-    <div class="pt">Spread by Genre / Keyword / Programme</div>
+    <div class="pt">
+      <span>Genre / Programme Spread</span>
+        <select class="unit-sel" id="genre-unit" onchange="applyFilters()"></select>
+      <div class="pt-controls">
+        <div class="ttog">
+          <button class="tt active" onclick="setGenreType('doughnut',this)" title="Doughnut">🍩</button>
+          <button class="tt" onclick="setGenreType('pie',this)" title="Pie">🥧</button>
+          <button class="tt" onclick="setGenreType('bar',this)" title="Bar">📊</button>
+        </div>
+      </div>
+    </div>
     <div class="split">
       <div><div style="position:relative;width:100%;height:165px"><canvas id="genreChart"></canvas></div></div>
       <table class="dt">
@@ -470,28 +535,32 @@ canvas{{display:block}}
   </div>
   <div class="panel">
     <div class="pt">
-      Trend Analysis
-      <div class="ttog">
-        <button class="tt active" onclick="setGroup('day',this)">Day</button>
-        <button class="tt" onclick="setGroup('15d',this)">15-Days</button>
-        <button class="tt" onclick="setGroup('monthly',this)">Monthly</button>
-        <button class="tt" onclick="setGroup('quarterly',this)">Quarterly</button>
+      <span>Trend Analysis</span>
+      <div class="pt-controls">
+        <select class="unit-sel" id="trend-unit" onchange="applyFilters()"></select>
+        <div class="ttog" id="trend-grp-tog">
+          <button class="tt active" onclick="setGroup('day',this)">Day</button>
+          <button class="tt" onclick="setGroup('15d',this)">15-Days</button>
+          <button class="tt" onclick="setGroup('monthly',this)">Monthly</button>
+          <button class="tt" onclick="setGroup('quarterly',this)">Quarterly</button>
+        </div>
+        <div class="ttog">
+          <button class="tt active" onclick="setTrendType('line',this)" title="Line">📈</button>
+          <button class="tt" onclick="setTrendType('bar',this)" title="Bar">📊</button>
+        </div>
       </div>
     </div>
-    <div class="legend" id="trendLeg"></div>
-    <div style="position:relative;width:100%;height:155px"><canvas id="trendChart"></canvas></div>
-  </div>
-</div>
-
-<div style="padding:0 16px 16px">
-  <div class="panel">
-    <div class="pt">Company Detail</div>
-    <div style="overflow-x:auto;width:100%">
-    <table class="dt" style="width:100%">
-      <thead><tr><th>Company</th><th>Count</th><th>SOV %</th><th style="width:35%">Share</th><th>Volume</th></tr></thead>
-      <tbody id="sovTbl"></tbody>
-    </table>
+    <!-- Trend date range pickers -->
+    <div class="trend-dates">
+      <label>From</label>
+      <input type="date" id="trend-start" onchange="updateTrend(filterData())">
+      <label>To</label>
+      <input type="date" id="trend-end" onchange="updateTrend(filterData())">
+      <span id="trend-period-info" style="font-size:10px;color:#94A3B8;margin-left:4px"></span>
     </div>
+    <!-- Company checkboxes -->
+    <div class="co-checks" id="trend-co-checks"></div>
+    <div style="position:relative;width:100%;height:320px"><canvas id="trendChart"></canvas></div>
   </div>
 </div>
 
@@ -505,20 +574,55 @@ const CO_COLORS=["#2563EB","#059669","#D97706","#7C3AED","#DB2777","#0891B2","#6
 const GENRE_COLORS=["#4F46E5","#059669","#D97706","#DB2777","#0891B2","#65A30D","#9333EA","#EF4444"];
 const GRID_C="rgba(203,213,225,0.5)";const TEXT_C="#64748B";
 let charts={{}};let activeGroup="day";
+let sovChartType="doughnut";let sentChartType="bar";let genreChartType="doughnut";let trendChartType="line";
+let activeTrendCos=new Set();
 
 function fmt(n){{n=Number(n)||0;if(Math.abs(n)>=1e6)return(n/1e6).toFixed(1)+"M";if(Math.abs(n)>=1e3)return(n/1e3).toFixed(1)+"K";return Math.round(n).toString();}}
+
+function getUnitLabel(id){{
+  if(id)return getSelLabel(id);
+  const s=document.getElementById("sov-unit");
+  return s&&s.options[s.selectedIndex]?s.options[s.selectedIndex].text:"Count";
+}}
+
+function populateUnitSel(id){{
+  const sel=document.getElementById(id);if(!sel)return;
+  SD.unit_opts.forEach(([k,l])=>{{const o=document.createElement("option");o.value=k;o.textContent=l;sel.appendChild(o);}});
+}}
+function getSelUnit(id){{const s=document.getElementById(id);return s?s.value:(SD.unit_opts[0]||["articles"])[0];}}
+function getSelLabel(id){{const s=document.getElementById(id);return s&&s.options[s.selectedIndex]?s.options[s.selectedIndex].text:"Count";}}
 
 function initUI(){{
   const sel=document.getElementById("f-company");
   SD.companies.forEach(c=>{{const o=document.createElement("option");o.value=c;o.textContent=c;sel.appendChild(o);}});
-  const uSel=document.getElementById("f-unit");
-  SD.unit_opts.forEach(([k,l])=>{{const o=document.createElement("option");o.value=k;o.textContent=l;uSel.appendChild(o);}});
+  ["sov-unit","sent-unit","genre-unit","trend-unit"].forEach(id=>populateUnitSel(id));
   const allDates=SD.date_range.all;
   const startEl=document.getElementById("f-start");const endEl=document.getElementById("f-end");
   if(allDates.length){{
     startEl.value=allDates[0];startEl.min=allDates[0];startEl.max=allDates[allDates.length-1];
     endEl.value=allDates[allDates.length-1];endEl.min=allDates[0];endEl.max=allDates[allDates.length-1];
   }}
+  // Init trend date pickers to full range
+  const tStartEl=document.getElementById("trend-start");const tEndEl=document.getElementById("trend-end");
+  if(allDates.length){{
+    tStartEl.value=allDates[0];tStartEl.min=allDates[0];tStartEl.max=allDates[allDates.length-1];
+    tEndEl.value=allDates[allDates.length-1];tEndEl.min=allDates[0];tEndEl.max=allDates[allDates.length-1];
+  }}
+  // Init company checkboxes for trend
+  activeTrendCos=new Set(SD.companies);
+  const cbCont=document.getElementById("trend-co-checks");
+  SD.companies.forEach((c,i)=>{{
+    const el=document.createElement("div");
+    el.className="co-cb checked";el.dataset.co=c;
+    el.style.borderColor=CO_COLORS[i%CO_COLORS.length];
+    el.innerHTML=`<div style="width:8px;height:8px;border-radius:50%;background:${{CO_COLORS[i%CO_COLORS.length]}}"></div>${{c}}`;
+    el.onclick=function(){{
+      if(activeTrendCos.has(c)){{activeTrendCos.delete(c);el.classList.remove("checked");el.style.background="";}}
+      else{{activeTrendCos.add(c);el.classList.add("checked");}}
+      updateTrend(filterData());
+    }};
+    cbCont.appendChild(el);
+  }});
 }}
 
 function filterData(){{
@@ -548,24 +652,93 @@ function destroyChart(id){{if(charts[id]){{charts[id].destroy();delete charts[id
 
 function updateSOV(d){{
   if(!d.sov.length)return;
-  const labels=d.sov.map(r=>r.company);
+  const sorted=[...d.sov].sort((a,b)=>b.articles-a.articles);
+  const totArt=sorted.reduce((s,r)=>s+r.articles,0)||1;
+  const labels=sorted.map(r=>r.company);
+  const pcts=sorted.map(r=>parseFloat((r.articles/totArt*100).toFixed(1)));
   destroyChart("sovChart");
-  charts.sovChart=new Chart(document.getElementById("sovChart"),{{
-    type:"bar",
-    data:{{labels,datasets:[
-      {{label:"Count",data:d.sov.map(r=>r.articles),backgroundColor:PC+"CC",borderRadius:4,borderWidth:0}},
-      {{label:"Volume",data:d.sov.map(r=>r.volume),backgroundColor:PC+"44",borderRadius:4,borderWidth:0}},
-    ]}},
-    options:{{responsive:true,maintainAspectRatio:false,
-      plugins:{{legend:{{labels:{{color:TEXT_C,font:{{size:10}},boxWidth:10,padding:10}}}},tooltip:{{callbacks:{{label:c=>c.dataset.label+": "+fmt(c.raw)}}}}}},
-      scales:{{x:{{grid:{{display:false}},ticks:{{color:TEXT_C,font:{{size:10}}}}}},y:{{grid:{{color:GRID_C}},ticks:{{color:TEXT_C,font:{{size:10}},callback:v=>fmt(v)}}}}}}
-    }}
-  }});
-  const totArt=d.sov.reduce((s,r)=>s+r.articles,0)||1;
-  document.getElementById("sovTbl").innerHTML=d.sov.map(r=>{{
-    const pct=((r.articles/totArt)*100).toFixed(1);const barW=Math.round(r.articles/totArt*100);
-    return`<tr><td style="font-weight:600;color:#1E293B">${{r.company}}</td><td>${{fmt(r.articles)}}</td><td style="color:${{PC}};font-weight:600">${{pct}}%</td><td><div style="background:#F1F5F9;border-radius:3px;height:6px;width:100%"><div class="sov-bar" style="width:${{barW}}%"></div></div></td><td>${{fmt(r.volume)}}</td></tr>`;
+  const sovEl=document.getElementById("sovChart");
+  if(sovChartType==="stacked100"){{
+    // Grouped bar chart — one bar per company showing SOV %
+    charts.sovChart=new Chart(sovEl,{{
+      type:"bar",
+      data:{{labels,datasets:[{{
+        label:"SOV %",data:pcts,
+        backgroundColor:CO_COLORS.slice(0,labels.length),
+        borderRadius:5,borderWidth:0
+      }}]}},
+      options:{{responsive:true,maintainAspectRatio:false,
+        plugins:{{
+          legend:{{display:false}},
+          tooltip:{{callbacks:{{label:c=>c.label+": "+c.raw.toFixed(1)+"%"}}}}
+        }},
+        scales:{{
+          x:{{grid:{{display:false}},ticks:{{color:TEXT_C,font:{{size:10}}}}}},
+          y:{{max:100,ticks:{{callback:v=>v+"%",color:TEXT_C,font:{{size:10}}}},grid:{{color:GRID_C}}}}
+        }}
+      }}
+    }});
+  }}else if(sovChartType==="bar"){{
+    charts.sovChart=new Chart(sovEl,{{
+      type:"bar",
+      data:{{labels,datasets:[{{
+        label:"SOV %",data:pcts,
+        backgroundColor:CO_COLORS.slice(0,labels.length).map(c=>c+"CC"),
+        borderRadius:5,borderWidth:0
+      }}]}},
+      options:{{responsive:true,maintainAspectRatio:false,indexAxis:"y",
+        plugins:{{legend:{{display:false}},tooltip:{{callbacks:{{label:c=>c.raw.toFixed(1)+"%"}}}}}},
+        scales:{{x:{{grid:{{color:GRID_C}},ticks:{{color:TEXT_C,font:{{size:10}},callback:v=>v+"%"}},max:100}},
+                 y:{{grid:{{display:false}},ticks:{{color:TEXT_C,font:{{size:10}}}}}}}}
+      }}
+    }});
+  }}else{{
+    charts.sovChart=new Chart(sovEl,{{
+      type:sovChartType,
+      data:{{labels,datasets:[{{data:pcts,backgroundColor:CO_COLORS.slice(0,labels.length),borderWidth:2,borderColor:"#F8FAFF"}}]}},
+      options:{{responsive:true,maintainAspectRatio:false,cutout:sovChartType==="doughnut"?"55%":"0%",
+        plugins:{{legend:{{labels:{{color:TEXT_C,font:{{size:10}},boxWidth:9,padding:8}}}},
+          tooltip:{{callbacks:{{label:c=>c.label+": "+c.raw.toFixed(1)+"%"}}}}}}
+      }}
+    }});
+  }}
+  document.getElementById("sovTbl").innerHTML=sorted.map((r,i)=>{{
+    const pct=(r.articles/totArt*100).toFixed(1);
+    return`<tr>
+      <td style="display:flex;align-items:center;gap:5px">
+        <div style="width:7px;height:7px;border-radius:50%;background:${{CO_COLORS[i%CO_COLORS.length]}};flex-shrink:0"></div>
+        <span style="font-weight:600;color:#1E293B">${{r.company}}</span>
+      </td>
+      <td style="color:${{PC}};font-weight:700">${{pct}}%</td>
+    </tr>`;
   }}).join("");
+}}
+
+function setSovType(t,btn){{
+  sovChartType=t;
+  document.querySelectorAll("#sov-type-tog .tt").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  // For stacked100, widen the chart area (no table needed)
+  const splitEl=document.getElementById("sov-split");
+  if(splitEl)splitEl.style.gridTemplateColumns=t==="stacked100"?"1fr":"1fr 160px";
+  const tblEl=splitEl?splitEl.querySelector("table"):null;
+  if(tblEl)tblEl.style.display=t==="stacked100"?"none":"";
+  updateSOV(filterData());
+}}
+function setSentType(t,btn){{
+  sentChartType=t;
+  const tog=btn.closest(".ttog");if(tog)tog.querySelectorAll(".tt").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");updateSentiment(filterData());
+}}
+function setGenreType(t,btn){{
+  genreChartType=t;
+  const tog=btn.closest(".ttog");if(tog)tog.querySelectorAll(".tt").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");updateGenre(filterData());
+}}
+function setTrendType(t,btn){{
+  trendChartType=t;
+  const tog=btn.closest(".ttog");if(tog)tog.querySelectorAll(".tt").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");updateTrend(filterData());
 }}
 
 function updateSentiment(d){{
@@ -579,6 +752,16 @@ function updateSentiment(d){{
       data:{{labels,datasets:[{{data:vals,backgroundColor:["#16A34A","#6B7280","#2563EB","#D97706"],borderWidth:2,borderColor:"#F8FAFF"}}]}},
       options:{{responsive:true,maintainAspectRatio:false,cutout:"55%",plugins:{{legend:{{labels:{{color:TEXT_C,font:{{size:10}},boxWidth:8,padding:6}}}}}}}}
     }});
+  }}else if(sentChartType==="doughnut"){{
+    // Aggregate all companies sentiment for doughnut
+    const totB=d.sent.reduce((s,r)=>s+r.beneficial,0)/Math.max(d.sent.length,1);
+    const totN=d.sent.reduce((s,r)=>s+r.neutral,0)/Math.max(d.sent.length,1);
+    const totA=d.sent.reduce((s,r)=>s+r.adverse,0)/Math.max(d.sent.length,1);
+    charts.sentChart=new Chart(document.getElementById("sentChart"),{{
+      type:"doughnut",
+      data:{{labels:["Beneficial","Neutral","Adverse"],datasets:[{{data:[totB,totN,totA],backgroundColor:["#16A34A","#6B7280","#DC2626"],borderWidth:2,borderColor:"#F8FAFF"}}]}},
+      options:{{responsive:true,maintainAspectRatio:false,cutout:"55%",plugins:{{legend:{{labels:{{color:TEXT_C,font:{{size:10}},boxWidth:8,padding:6}}}},tooltip:{{callbacks:{{label:c=>c.label+": "+c.raw.toFixed(1)+"%"}}}}}}}}
+    }});
   }}else{{
     if(!d.sent.length)return;
     charts.sentChart=new Chart(document.getElementById("sentChart"),{{
@@ -589,7 +772,7 @@ function updateSentiment(d){{
         {{label:"Adverse",data:d.sent.map(r=>r.adverse),backgroundColor:"#DC2626",borderWidth:0,stack:"s"}},
       ]}},
       options:{{responsive:true,maintainAspectRatio:false,
-        plugins:{{legend:{{display:false}},tooltip:{{callbacks:{{label:c=>c.dataset.label+": "+c.raw+"%"}}}}}},
+        plugins:{{legend:{{display:false}},tooltip:{{callbacks:{{label:c=>c.dataset.label+": "+c.raw.toFixed(1)+"%"}}}}}},
         scales:{{x:{{stacked:true,grid:{{display:false}},ticks:{{color:TEXT_C,font:{{size:10}}}}}},y:{{stacked:true,max:100,ticks:{{callback:v=>v+"%",color:TEXT_C,font:{{size:10}}}},grid:{{color:GRID_C}}}}}}
       }}
     }});
@@ -603,11 +786,23 @@ function updateGenre(d){{
     `<tr><td style="display:flex;align-items:center;gap:4px"><div style="width:7px;height:7px;border-radius:2px;flex-shrink:0;background:${{GENRE_COLORS[i%GENRE_COLORS.length]}}"></div>${{g.genre.length>16?g.genre.slice(0,14)+"…":g.genre}}</td><td>${{g.pct}}%</td></tr>`
   ).join("");
   destroyChart("genreChart");
-  charts.genreChart=new Chart(document.getElementById("genreChart"),{{
-    type:"doughnut",
-    data:{{labels,datasets:[{{data:vals,backgroundColor:GENRE_COLORS.slice(0,labels.length),borderWidth:2,borderColor:"#F8FAFF"}}]}},
-    options:{{responsive:true,maintainAspectRatio:false,cutout:"58%",plugins:{{legend:{{display:false}},tooltip:{{callbacks:{{label:c=>c.label+": "+((c.raw/total)*100).toFixed(1)+"%"}}}}}}}}
-  }});
+  if(genreChartType==="bar"){{
+    charts.genreChart=new Chart(document.getElementById("genreChart"),{{
+      type:"bar",
+      data:{{labels,datasets:[{{label:"Value",data:vals,backgroundColor:GENRE_COLORS.slice(0,labels.length).map(c=>c+"CC"),borderRadius:4,borderWidth:0}}]}},
+      options:{{responsive:true,maintainAspectRatio:false,indexAxis:"y",
+        plugins:{{legend:{{display:false}},tooltip:{{callbacks:{{label:c=>((c.raw/total)*100).toFixed(1)+"%"}}}}}},
+        scales:{{x:{{grid:{{color:GRID_C}},ticks:{{color:TEXT_C,font:{{size:9}}}}}},y:{{grid:{{display:false}},ticks:{{color:TEXT_C,font:{{size:9}}}}}}}}
+      }}
+    }});
+  }}else{{
+    charts.genreChart=new Chart(document.getElementById("genreChart"),{{
+      type:genreChartType,
+      data:{{labels,datasets:[{{data:vals,backgroundColor:GENRE_COLORS.slice(0,labels.length),borderWidth:2,borderColor:"#F8FAFF"}}]}},
+      options:{{responsive:true,maintainAspectRatio:false,cutout:genreChartType==="doughnut"?"58%":"0%",
+        plugins:{{legend:{{display:false}},tooltip:{{callbacks:{{label:c=>c.label+": "+((c.raw/total)*100).toFixed(1)+"%"}}}}}}}}
+    }});
+  }}
 }}
 
 function groupTrend(dates,series,grouping){{
@@ -624,20 +819,68 @@ function groupTrend(dates,series,grouping){{
   return grouped;
 }}
 
+function fmtDateLabel(k){{
+  // Format the date key into a human-readable label
+  if(k.includes("-Q"))return k; // quarterly already readable
+  if(k.length===7){{// monthly YYYY-MM
+    const months=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const[y,m]=k.split("-");return months[parseInt(m)-1]+" "+y;
+  }}
+  if(k.length===10){{// daily YYYY-MM-DD
+    const[y,m,dd]=k.split("-");
+    const months=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    return dd+" "+months[parseInt(m)-1];
+  }}
+  return k.slice(5)||k;
+}}
+
 function updateTrend(d){{
-  const grouped=groupTrend(d.trend.dates,d.trend.series,activeGroup);
-  const keys=Object.keys(grouped).sort();const cos=Object.keys(d.trend.series);
-  document.getElementById("trendLeg").innerHTML=cos.map((c,i)=>
-    `<div class="li"><div class="ld" style="background:${{CO_COLORS[i%CO_COLORS.length]}}"></div>${{c}}</div>`
-  ).join("");
-  const datasets=cos.map((c,i)=>({{label:c,data:keys.map(k=>grouped[k][c]||0),
-    borderColor:CO_COLORS[i%CO_COLORS.length],backgroundColor:CO_COLORS[i%CO_COLORS.length]+"22",
-    borderWidth:2,pointRadius:3,tension:.3,fill:false}}));
+  // Apply trend-specific date range from the trend date pickers
+  const tStart=document.getElementById("trend-start");
+  const tEnd=document.getElementById("trend-end");
+  let trendDates=d.trend.dates;
+  let trendSeries=d.trend.series;
+  if(tStart&&tEnd&&tStart.value&&tEnd.value){{
+    const s=tStart.value,e=tEnd.value;
+    const idxs=trendDates.map((dt,i)=>dt>=s&&dt<=e?i:-1).filter(i=>i>=0);
+    trendDates=idxs.map(i=>trendDates[i]);
+    const filtered={{}};
+    Object.keys(trendSeries).forEach(c=>{{filtered[c]=idxs.map(i=>trendSeries[c][i]||0);}});
+    trendSeries=filtered;
+  }}
+  const grouped=groupTrend(trendDates,trendSeries,activeGroup);
+  const keys=Object.keys(grouped).sort();
+  const allCos=Object.keys(trendSeries);
+  const cos=allCos.filter(c=>activeTrendCos.has(c));
+  const displayLabels=keys.map(k=>fmtDateLabel(k));
+  // Update period info label
+  const piEl=document.getElementById("trend-period-info");
+  if(piEl&&keys.length){{
+    piEl.textContent=keys.length+" "+activeGroup+" period"+(keys.length!==1?"s":"");
+  }}
+  const unitLbl=getUnitLabel("trend-unit");
+  const datasets=cos.map((c,i)=>{{
+    const coIdx=SD.companies.indexOf(c);
+    const color=CO_COLORS[coIdx>=0?coIdx%CO_COLORS.length:i%CO_COLORS.length];
+    return{{label:c,data:keys.map(k=>grouped[k][c]||0),
+      borderColor:color,backgroundColor:color+"33",
+      borderWidth:2,pointRadius:trendChartType==="line"?3:0,tension:.3,fill:false
+    }};
+  }});
   destroyChart("trendChart");
   charts.trendChart=new Chart(document.getElementById("trendChart"),{{
-    type:"line",data:{{labels:keys.map(k=>k.length>7?k.slice(5):k),datasets}},
-    options:{{responsive:true,maintainAspectRatio:false,plugins:{{legend:{{display:false}}}},
-      scales:{{x:{{grid:{{display:false}},ticks:{{color:TEXT_C,font:{{size:10}},maxTicksLimit:12}}}},y:{{grid:{{color:GRID_C}},ticks:{{color:TEXT_C,font:{{size:10}},callback:v=>fmt(v)}}}}}}
+    type:trendChartType,
+    data:{{labels:displayLabels,datasets}},
+    options:{{responsive:true,maintainAspectRatio:false,
+      plugins:{{legend:{{display:true,position:"top",labels:{{color:TEXT_C,font:{{size:10}},boxWidth:10,padding:10}}}},
+        tooltip:{{callbacks:{{
+          title:function(items){{return keys[items[0].dataIndex]||""}},
+          label:function(c){{return c.dataset.label+": "+fmt(c.raw)+" ("+unitLbl+")";}}
+        }}}}}},
+      scales:{{
+        x:{{grid:{{display:false}},ticks:{{color:TEXT_C,font:{{size:10}},maxTicksLimit:16,maxRotation:30}}}},
+        y:{{grid:{{color:GRID_C}},ticks:{{color:TEXT_C,font:{{size:10}},callback:v=>fmt(v)}}}}
+      }}
     }}
   }});
 }}
@@ -647,8 +890,18 @@ function applyFilters(){{
   updateKPIs(filtered);updateSOV(filtered);updateSentiment(filtered);updateGenre(filtered);updateTrend(filtered);
 }}
 
+// Redraw all Chart.js charts when container resizes (handles browser zoom in/out)
+let _resizeTimer=null;
+const _ro=new ResizeObserver(()=>{{
+  clearTimeout(_resizeTimer);
+  _resizeTimer=setTimeout(()=>{{
+    Object.values(charts).forEach(c=>{{try{{c.resize();}}catch(e){{}}}});
+  }},120);
+}});
+_ro.observe(document.body);
+
 function setGroup(g,btn){{
-  activeGroup=g;document.querySelectorAll(".tt").forEach(b=>b.classList.remove("active"));btn.classList.add("active");updateTrend(filterData());
+  activeGroup=g;document.querySelectorAll("#trend-grp-tog .tt").forEach(b=>b.classList.remove("active"));btn.classList.add("active");updateTrend(filterData());
 }}
 
 function doExport(){{window.parent.postMessage({{type:"cbc_export",platform:"{platform_key}"}}, "*");}}
@@ -716,9 +969,9 @@ def render_platform_dashboard(username, role, platform_key="print", product_key=
     df = get_platform_df(platform_key, product_key)
     chart_data = build_chart_data(df, platform_key, "articles", product_key)
     html = _build_html(chart_data, platform_key, product_key)
-    # Dynamic height: base 820px + 38px per company row
+    # Dynamic height: base 760px (Company Detail removed) + 22px per company checkbox pill
     n_companies = df["company"].nunique() if "company" in df.columns else 10
-    iframe_height = max(980, 820 + (n_companies * 38))
+    iframe_height = max(900, 760 + (n_companies * 22))
     st.components.v1.html(html, height=iframe_height, scrolling=True)
 
     st.markdown("---")

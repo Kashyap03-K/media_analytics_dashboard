@@ -569,8 +569,8 @@ def render_analytics(username, product_key="hgec"):
         df = get_platform_df(key, product_key)
         dfs[label] = df
 
-    tab1, tab2, tab3, tab4 = st.tabs([
-        "📊 Platform Comparison","🧭 Sentiment Overview","📅 Trend Analysis","🏆 SOV Breakdown"
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        "📊 Platform Comparison","🧭 Sentiment Overview","📅 Trend Analysis","🏆 SOV Breakdown","📈 Growth Analysis"
     ])
 
     # ── TAB 1: Articles & Volume comparison ──────────────────────────────
@@ -690,6 +690,172 @@ def render_analytics(username, product_key="hgec"):
                          use_container_width=True)
         else:
             st.info("No company data available for the selected mediums.")
+
+    # ── TAB 5: Growth Analysis ────────────────────────────────────────────
+    with tab5:
+        st.markdown("##### 📈 Growth & Comparative Analysis")
+        st.caption("Period-over-period growth (%) per company across selected mediums.")
+
+        # Controls row
+        gc1, gc2, gc3 = st.columns([1, 1, 2])
+        with gc1:
+            period_mode = st.selectbox(
+                "Period Grouping",
+                ["Monthly", "Quarterly", "Yearly"],
+                key="growth_period"
+            )
+        with gc2:
+            growth_metric = st.selectbox(
+                "Metric",
+                ["Articles", "Volume", "Beneficial", "Adverse"],
+                key="growth_metric"
+            )
+        with gc3:
+            # Collect all companies across selected mediums
+            all_cos = set()
+            for label, key in selected:
+                df_ = dfs[label]
+                if not df_.empty and "company" in df_.columns:
+                    all_cos.update(df_["company"].dropna().unique().tolist())
+            all_cos = sorted(all_cos)
+            if all_cos:
+                sel_cos = st.multiselect(
+                    "Filter Companies",
+                    all_cos,
+                    default=all_cos[:min(4, len(all_cos))],
+                    key="growth_cos"
+                )
+            else:
+                sel_cos = []
+
+        metric_col_map = {
+            "Articles":   "total_articles",
+            "Volume":     "total_vol",
+            "Beneficial": "beneficial_art",
+            "Adverse":    "adverse_art",
+        }
+        mcol = metric_col_map[growth_metric]
+
+        def period_key(date_str, mode):
+            try:
+                import datetime
+                d = datetime.datetime.strptime(str(date_str)[:10], "%Y-%m-%d")
+                if mode == "Monthly":   return d.strftime("%Y-%m")
+                if mode == "Quarterly": return f"{d.year}-Q{(d.month-1)//3+1}"
+                return str(d.year)
+            except Exception:
+                return str(date_str)[:7]
+
+        # Build growth data per medium + company
+        growth_frames = []
+        for label, key in selected:
+            df_ = dfs[label]
+            if df_.empty or "publication_date" not in df_.columns: continue
+            if "company" not in df_.columns: continue
+            df_ = df_.copy()
+            df_["_period"] = df_["publication_date"].apply(lambda x: period_key(x, period_mode))
+            df_[mcol] = pd.to_numeric(df_.get(mcol, 0), errors="coerce").fillna(0)
+            grp = df_.groupby(["company", "_period"])[mcol].sum().reset_index()
+            grp["medium"] = label
+            growth_frames.append(grp)
+
+        if not growth_frames or not sel_cos:
+            st.info("No data available. Ensure mediums are selected and data is loaded.")
+        else:
+            gdf = pd.concat(growth_frames, ignore_index=True)
+            gdf = gdf[gdf["company"].isin(sel_cos)]
+
+            all_periods = sorted(gdf["_period"].unique())
+
+            # ── Panel A: Growth % bar chart per period ────────────────────
+            st.markdown("---")
+            st.markdown("###### Period-over-Period Growth (%)")
+
+            fig_growth = go.Figure()
+            for label, key in selected:
+                sub = gdf[gdf["medium"] == label]
+                for co in sel_cos:
+                    co_sub = sub[sub["company"] == co].set_index("_period")[mcol]
+                    co_sub = co_sub.reindex(all_periods, fill_value=0)
+                    pct_changes = []
+                    for i, p in enumerate(all_periods):
+                        if i == 0:
+                            pct_changes.append(0)
+                        else:
+                            prev = co_sub.iloc[i-1]
+                            curr = co_sub.iloc[i]
+                            if prev == 0:
+                                pct_changes.append(0)
+                            else:
+                                pct_changes.append(round((curr - prev) / prev * 100, 1))
+                    fig_growth.add_bar(
+                        name=f"{co} ({label})",
+                        x=all_periods[1:],
+                        y=pct_changes[1:],
+                        marker_line_width=0,
+                        text=[f"{v:+.1f}%" for v in pct_changes[1:]],
+                        textposition="outside",
+                    )
+
+            fig_growth.update_layout(
+                **base(f"{growth_metric} Growth % by {period_mode}", h=400),
+                barmode="group",
+                xaxis=dict(showgrid=False, tickfont=dict(color=TC)),
+                yaxis=dict(showgrid=True, gridcolor=GC, ticksuffix="%",
+                           tickfont=dict(color=TC), zeroline=True,
+                           zerolinecolor="#CBD5E1", zerolinewidth=1.5),
+                legend=dict(font=dict(color=TC, size=10), bgcolor="rgba(0,0,0,0)"),
+            )
+            st.plotly_chart(fig_growth, use_container_width=True, key="growth_bar")
+
+            # ── Panel B: Absolute values table + sparkline summary ────────
+            st.markdown("###### Comparative Table — Absolute Values per Period")
+            pivot_rows = []
+            for label, key in selected:
+                sub = gdf[gdf["medium"] == label]
+                for co in sel_cos:
+                    co_sub = sub[sub["company"] == co].set_index("_period")[mcol]
+                    row = {"Medium": label, "Company": co}
+                    for p in all_periods:
+                        row[p] = int(co_sub.get(p, 0))
+                    # Growth % vs first period
+                    vals = [row[p] for p in all_periods]
+                    first = vals[0] if vals else 0
+                    last  = vals[-1] if vals else 0
+                    row["Overall Growth %"] = (
+                        f"{round((last-first)/first*100,1):+.1f}%" if first > 0 else "N/A"
+                    )
+                    pivot_rows.append(row)
+
+            if pivot_rows:
+                pivot_df = pd.DataFrame(pivot_rows)
+                st.dataframe(
+                    pivot_df.set_index(["Medium", "Company"]),
+                    use_container_width=True
+                )
+
+            # ── Panel C: Line chart — absolute trend per company ──────────
+            st.markdown("###### Absolute Trend by Company")
+            fig_abs = go.Figure()
+            for label, key in selected:
+                sub = gdf[gdf["medium"] == label]
+                for i, co in enumerate(sel_cos):
+                    co_sub = sub[sub["company"] == co].set_index("_period")[mcol]
+                    co_sub = co_sub.reindex(all_periods, fill_value=0)
+                    fig_abs.add_scatter(
+                        name=f"{co} ({label})",
+                        x=all_periods, y=co_sub.values.tolist(),
+                        mode="lines+markers",
+                        line=dict(width=2),
+                        marker=dict(size=5),
+                    )
+            fig_abs.update_layout(
+                **base(f"{growth_metric} — Absolute Values ({period_mode})", h=360),
+                xaxis=dict(showgrid=False, tickfont=dict(color=TC)),
+                yaxis=dict(showgrid=True, gridcolor=GC, tickfont=dict(color=TC)),
+                legend=dict(font=dict(color=TC, size=10), bgcolor="rgba(0,0,0,0)"),
+            )
+            st.plotly_chart(fig_abs, use_container_width=True, key="growth_abs")
 
 
 def render_downloads(username):
